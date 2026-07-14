@@ -1,4 +1,4 @@
-# DRUMMY WAREZ
+# 1984drum Shareware
 
 A satirical 1990s "warez site" app store for web apps, live at [warez.1984drum.com](https://warez.1984drum.com).
 

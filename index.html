@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1984drum freeware</title>
-    <meta name="description" content="DRUMMY WAREZ — a satirical 1990s software emporium of hand-crafted web apps.">
+    <meta name="description" content="1984drum Shareware — a satirical 1990s software emporium of hand-crafted web apps.">
     <style>
         /* ============ 90s FOUNDATION ============ */
         @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=VT323&display=swap');
@@ -685,8 +685,8 @@
             transition: opacity 0.5s;
         }
 
-        /* ============ LLAMATRON LLAMA ============ */
-        #llama {
+        /* ============ LLAMATRON LLAMAS ============ */
+        .llama-sprite {
             position: fixed;
             left: 0;
             top: 0;
@@ -698,6 +698,25 @@
         @keyframes llama-rainbow {
             from { filter: hue-rotate(0deg); }
             to   { filter: hue-rotate(360deg); }
+        }
+        .llama-shot {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 40;
+            pointer-events: none;
+        }
+        .llama-boom {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 40;
+            pointer-events: none;
+            animation: boomfx 0.7s ease-out forwards;
+        }
+        @keyframes boomfx {
+            from { transform: scale(0.6); opacity: 1; }
+            to   { transform: scale(2.4); opacity: 0; }
         }
 
         /* ============ SPARKLE TRAIL ============ */
@@ -713,7 +732,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant, #llama, .pig-vibrate { animation: none; }
+            .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant, .llama-sprite, .pig-vibrate { animation: none; }
         }
     </style>
 </head>
@@ -739,13 +758,13 @@
     <!-- Navbar / Marquee -->
     <div class="marquee-bar">
         <marquee scrollamount="8">
-            🔥 💾 WELCOME TO DRUMMY WAREZ — 100% LEGIT, 0% VIRUSES (PROBABLY) 💾 🔥 >>> NO RATIO REQUIRED >>> ALL APPS CRACKED BY THE DEVELOPER HIMSELF (HE HAS THE PASSWORDS) >>> BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 AT 800x600 🚀 >>> NOW SERVING 4 (FOUR) APPS — DOUBLE THE WAREZ, SAME ZERO PRICE 💾
+            🔥 💾 WELCOME TO 1984DRUM SHAREWARE — 100% LEGIT, 0% VIRUSES (PROBABLY) 💾 🔥 >>> NO RATIO REQUIRED >>> ALL APPS CRACKED BY THE DEVELOPER HIMSELF (HE HAS THE PASSWORDS) >>> BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 AT 800x600 🚀 >>> NOW SERVING 4 (FOUR) APPS — DOUBLE THE WAREZ, SAME ZERO PRICE 💾
         </marquee>
     </div>
 
     <!-- Header Section -->
     <header>
-        <h1 class="wordart">DRUMMY<br>WAREZ</h1>
+        <h1 class="wordart">1984drum<br>Shareware</h1>
         <div class="hazard-tape"></div>
 
         <p class="tagline comic-sans">
@@ -1155,7 +1174,7 @@
     </div>
 
     <!-- Blue Screen of Death (localisation incident) -->
-    <div id="bsod"><span class="bsod-title">DRUMMY WAREZ</span>
+    <div id="bsod"><span class="bsod-title">1984drum Shareware</span>
 
 A problem has been detected and the assistant has been shut down
 to prevent damage to your vocabulary.
@@ -1195,8 +1214,8 @@ Rebooting in American...</div>
         </p>
 
         <p class="copyright">
-            © 1999-2026 DRUMMY WAREZ Solutions Inc. All rights reserved locally.<br>
-            Formerly "Satirical App Store" — rebranded after a focus group of one.<br>
+            © 1999-2026 1984drum Shareware Solutions Inc. All rights reserved locally.<br>
+            Formerly "DRUMMY WAREZ", formerly "Satirical App Store" — rebranding is our passion.<br>
             Hosted on the World Wide Web at warez.1984drum.com
         </p>
     </footer>
@@ -1506,8 +1525,9 @@ Rebooting in American...</div>
             }
         })();
 
-        // ===== Llamatron llama: bounces around the background like an =====
-        // ===== Arkanoid ball, cycling through the rainbow.            =====
+        // ===== Llamatron llamas: bounce around the background like Arkanoid =====
+        // ===== balls, cycling through the rainbow. Click one to breed it.   =====
+        // ===== Some shoot cheeseburgers, some shoot coke, some just explode. =====
         (function () {
             const SPRITE = [
                 '......................',
@@ -1532,55 +1552,167 @@ Rebooting in American...</div>
                 '......................'
             ];
             const SCALE = 3;
+            const MAX_LLAMAS = 40;
             const cols = SPRITE[0].length, rows = SPRITE.length;
-            const canvas = document.createElement('canvas');
-            canvas.id = 'llama';
-            canvas.width = cols + 1;   // +1 leaves room for the drop shadow
-            canvas.height = rows + 1;
-            canvas.style.width = (cols + 1) * SCALE + 'px';
-            canvas.style.height = (rows + 1) * SCALE + 'px';
-            const ctx = canvas.getContext('2d');
+            const BASE_W = (cols + 1) * SCALE, BASE_H = (rows + 1) * SCALE;
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            // Draw the sprite once; every llama copies this bitmap.
+            const template = document.createElement('canvas');
+            template.width = cols + 1;   // +1 leaves room for the drop shadow
+            template.height = rows + 1;
+            const tctx = template.getContext('2d');
             // Black offset silhouette first, then pure red on top —
             // hue-rotate spins the red through the whole rainbow, black stays black.
             for (const [color, off] of [['#000000', 1], ['#ff0000', 0]]) {
-                ctx.fillStyle = color;
+                tctx.fillStyle = color;
                 SPRITE.forEach((row, y) => {
                     [...row].forEach((px, x) => {
-                        if (px === 'O') ctx.fillRect(x + off, y + off, 1, 1);
+                        if (px === 'O') tctx.fillRect(x + off, y + off, 1, 1);
                     });
                 });
             }
-            document.body.appendChild(canvas);
 
-            const W = (cols + 1) * SCALE, H = (rows + 1) * SCALE;
-            let x = Math.random() * Math.max(1, innerWidth - W);
-            let y = Math.random() * Math.max(1, innerHeight - H);
-            let vx = (55 + Math.random() * 65) * (Math.random() < 0.5 ? -1 : 1);
-            let vy = (55 + Math.random() * 65) * (Math.random() < 0.5 ? -1 : 1);
+            const AMMO = { burger: '🍔', coke: '🥤' };
+            const llamas = [];
+            const shots = [];
 
-            function place() {
+            function spawnLlama(speed, size) {
+                const el = document.createElement('canvas');
+                el.className = 'llama-sprite';
+                el.width = template.width;
+                el.height = template.height;
+                el.getContext('2d').drawImage(template, 0, 0);
+                el.style.width = Math.round(BASE_W * size) + 'px';
+                el.style.height = Math.round(BASE_H * size) + 'px';
+                document.body.appendChild(el);
+                const ang = Math.random() * Math.PI * 2;
+                // steer away from near-vertical/horizontal drift
+                const vx = Math.max(0.35, Math.abs(Math.cos(ang))) * speed * Math.sign(Math.cos(ang) || 1);
+                const vy = Math.max(0.35, Math.abs(Math.sin(ang))) * speed * Math.sign(Math.sin(ang) || 1);
+                const l = {
+                    el, speed, size,
+                    w: BASE_W * size, h: BASE_H * size,
+                    x: Math.random() * Math.max(1, innerWidth - BASE_W * size),
+                    y: Math.random() * Math.max(1, innerHeight - BASE_H * size),
+                    vx, vy,
+                    type: ['burger', 'coke', 'exploder'][Math.floor(Math.random() * 3)],
+                    cooldown: 2 + Math.random() * 3
+                };
+                llamas.push(l);
+                placeLlama(l);
+                return l;
+            }
+
+            function placeLlama(l) {
                 // sprite faces left; flip to face the direction of travel
-                canvas.style.transform = 'translate(' + x + 'px,' + y + 'px) scaleX(' + (vx < 0 ? 1 : -1) + ')';
+                l.el.style.transform = 'translate(' + l.x + 'px,' + l.y + 'px) scaleX(' + (l.vx < 0 ? 1 : -1) + ')';
             }
 
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                place();
-                return;
+            function fireShot(l) {
+                const s = document.createElement('span');
+                s.className = 'llama-shot';
+                s.textContent = AMMO[l.type];
+                s.style.fontSize = Math.round(16 * l.size) + 'px';
+                document.body.appendChild(s);
+                const dir = l.vx < 0 ? -1 : 1;
+                shots.push({
+                    el: s,
+                    x: l.x + (dir < 0 ? 0 : l.w),
+                    y: l.y + l.h * 0.35,
+                    vx: dir * 260,
+                    vy: (Math.random() - 0.5) * 80
+                });
             }
+
+            function explodeLlama(l) {
+                const i = llamas.indexOf(l);
+                if (i === -1) return;
+                llamas.splice(i, 1);
+                l.el.remove();
+                const boom = document.createElement('span');
+                boom.className = 'llama-boom';
+                boom.textContent = '💥';
+                boom.style.fontSize = Math.round(34 * l.size) + 'px';
+                boom.style.left = l.x + 'px';
+                boom.style.top = l.y + 'px';
+                document.body.appendChild(boom);
+                setTimeout(() => boom.remove(), 750);
+            }
+
+            // Click a llama to breed: the offspring is 2% faster and either
+            // 5% larger or 5% smaller than its parent.
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.win95-window, .assistant, .midi-deck, #custom-modal, #intro, #bsod, a, button, .badge-row, .hit-counter-box, .webring, marquee')) return;
+                const slop = 8;
+                for (let i = llamas.length - 1; i >= 0; i--) {
+                    const l = llamas[i];
+                    if (e.clientX >= l.x - slop && e.clientX <= l.x + l.w + slop &&
+                        e.clientY >= l.y - slop && e.clientY <= l.y + l.h + slop) {
+                        if (llamas.length < MAX_LLAMAS) {
+                            spawnLlama(l.speed * 1.02, l.size * (Math.random() < 0.5 ? 1.05 : 0.95));
+                        }
+                        break;
+                    }
+                }
+            });
+
+            // The original specimen.
+            spawnLlama(55 + Math.random() * 65, 1);
+
+            if (reduced) return; // llamas stand still; no shooting, no explosions
+
+            // Herd control: with more than 5 llamas, each second one may
+            // explode — 1% chance at first, rising 3% per second until it happens.
+            let boomChance = 1;
+            setInterval(() => {
+                if (llamas.length > 5) {
+                    if (Math.random() * 100 < boomChance) {
+                        const exploders = llamas.filter(l => l.type === 'exploder');
+                        const pool = exploders.length ? exploders : llamas;
+                        explodeLlama(pool[Math.floor(Math.random() * pool.length)]);
+                        boomChance = 1;
+                    } else {
+                        boomChance += 3;
+                    }
+                } else {
+                    boomChance = 1;
+                }
+            }, 1000);
 
             let last = performance.now();
             function step(now) {
                 const dt = Math.min((now - last) / 1000, 0.05);
                 last = now;
-                x += vx * dt;
-                y += vy * dt;
-                const maxX = Math.max(0, innerWidth - W);
-                const maxY = Math.max(0, innerHeight - H);
-                if (x <= 0) { x = 0; vx = Math.abs(vx); }
-                else if (x >= maxX) { x = maxX; vx = -Math.abs(vx); }
-                if (y <= 0) { y = 0; vy = Math.abs(vy); }
-                else if (y >= maxY) { y = maxY; vy = -Math.abs(vy); }
-                place();
+                for (const l of llamas) {
+                    l.x += l.vx * dt;
+                    l.y += l.vy * dt;
+                    const maxX = Math.max(0, innerWidth - l.w);
+                    const maxY = Math.max(0, innerHeight - l.h);
+                    if (l.x <= 0) { l.x = 0; l.vx = Math.abs(l.vx); }
+                    else if (l.x >= maxX) { l.x = maxX; l.vx = -Math.abs(l.vx); }
+                    if (l.y <= 0) { l.y = 0; l.vy = Math.abs(l.vy); }
+                    else if (l.y >= maxY) { l.y = maxY; l.vy = -Math.abs(l.vy); }
+                    placeLlama(l);
+                    if (l.type !== 'exploder') {
+                        l.cooldown -= dt;
+                        if (l.cooldown <= 0) {
+                            fireShot(l);
+                            l.cooldown = 2.5 + Math.random() * 4;
+                        }
+                    }
+                }
+                for (let i = shots.length - 1; i >= 0; i--) {
+                    const s = shots[i];
+                    s.x += s.vx * dt;
+                    s.y += s.vy * dt;
+                    if (s.x < -60 || s.x > innerWidth + 60 || s.y < -60 || s.y > innerHeight + 60) {
+                        s.el.remove();
+                        shots.splice(i, 1);
+                    } else {
+                        s.el.style.transform = 'translate(' + s.x + 'px,' + s.y + 'px)';
+                    }
+                }
                 requestAnimationFrame(step);
             }
             requestAnimationFrame(step);
