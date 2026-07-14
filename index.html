@@ -11,6 +11,12 @@
 
         * { box-sizing: border-box; }
 
+        /* ============ MAGIC WAND CURSOR ============ */
+        /* Chunky pixel wand: black rod, white tips, gold star. Hotspot on the star. */
+        *, *:hover, *:active {
+            cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' shape-rendering='crispEdges'%3E%3Cline x1='8' y1='8' x2='25' y2='25' stroke='%23000000' stroke-width='5'/%3E%3Cline x1='8' y1='8' x2='13' y2='13' stroke='%23ffffff' stroke-width='3'/%3E%3Cline x1='21' y1='21' x2='25' y2='25' stroke='%23ffffff' stroke-width='3'/%3E%3Cpolygon points='5,0 6.6,3.4 10,5 6.6,6.6 5,10 3.4,6.6 0,5 3.4,3.4' fill='%23ffe14d' stroke='%23000000' stroke-width='0.8'/%3E%3C/svg%3E") 5 5, auto !important;
+        }
+
         html { -webkit-text-size-adjust: 100%; }
 
         body {
@@ -719,16 +725,21 @@
             to   { transform: scale(2.4); opacity: 0; }
         }
 
-        /* ============ SPARKLE TRAIL ============ */
+        /* ============ WAND PARTICLE FX ============ */
         .sparkle {
             position: fixed;
+            left: 0;
+            top: 0;
             pointer-events: none;
             z-index: 200;
-            font-size: 0.8rem;
-            animation: sparkle-fade 0.8s linear forwards;
+            animation: sparkle-fly var(--life, 0.9s) linear forwards;
+            text-shadow: 0 0 4px currentColor;
         }
-        @keyframes sparkle-fade {
-            to { opacity: 0; transform: translateY(14px) scale(0.3); }
+        @keyframes sparkle-fly {
+            to {
+                opacity: 0;
+                transform: translate(var(--tx, 0px), var(--ty, 20px)) rotate(var(--rot, 180deg)) scale(0.15);
+            }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1308,20 +1319,45 @@ Rebooting in American...</div>
             setTimeout(() => { assistant.style.animation = 'float 4s ease-in-out infinite'; }, 10);
         }
 
-        // Sparkle cursor trail (desktop only, throttled)
-        let lastSparkle = 0;
-        document.addEventListener('mousemove', (e) => {
-            const now = performance.now();
-            if (now - lastSparkle < 90) return;
-            lastSparkle = now;
+        // ===== Wand particle FX: a trail while you wave, a burst when you cast =====
+        const SPARKLE_GLYPHS = ['✨', '⭐', '💫', '✦', '✧', '✩', '·', '+'];
+        const SPARKLE_COLORS = ['#ffe14d', '#00ffff', '#ff00ff', '#ffffff', '#7dff7d'];
+        const reducedFx = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function spawnSparkle(x, y, burst) {
             const s = document.createElement('span');
             s.className = 'sparkle';
-            s.textContent = '✨';
-            s.style.left = (e.clientX + 8) + 'px';
-            s.style.top = (e.clientY + 8) + 'px';
+            s.textContent = SPARKLE_GLYPHS[Math.floor(Math.random() * SPARKLE_GLYPHS.length)];
+            s.style.color = SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)];
+            s.style.fontSize = (burst ? 10 + Math.random() * 12 : 7 + Math.random() * 8) + 'px';
+            const ang = Math.random() * Math.PI * 2;
+            const dist = burst ? 40 + Math.random() * 70 : 10 + Math.random() * 25;
+            const life = burst ? 0.7 + Math.random() * 0.5 : 0.6 + Math.random() * 0.5;
+            s.style.setProperty('--tx', Math.cos(ang) * dist + 'px');
+            // trail drifts downward like falling pixie dust; bursts go radial
+            s.style.setProperty('--ty', (burst ? Math.sin(ang) * dist : 15 + Math.random() * 30) + 'px');
+            s.style.setProperty('--rot', Math.round((Math.random() - 0.5) * 720) + 'deg');
+            s.style.setProperty('--life', life + 's');
+            s.style.transform = 'translate(0,0)';
+            s.style.translate = x + 'px ' + y + 'px';
             document.body.appendChild(s);
-            setTimeout(() => s.remove(), 800);
-        });
+            setTimeout(() => s.remove(), life * 1000 + 100);
+        }
+
+        let lastSparkle = 0;
+        if (!reducedFx) {
+            document.addEventListener('mousemove', (e) => {
+                const now = performance.now();
+                if (now - lastSparkle < 40) return;
+                lastSparkle = now;
+                spawnSparkle(e.clientX + 4, e.clientY + 4, false);
+                spawnSparkle(e.clientX + 4, e.clientY + 4, false);
+            });
+            // Every click is a spell.
+            document.addEventListener('click', (e) => {
+                for (let i = 0; i < 12; i++) spawnSparkle(e.clientX, e.clientY, true);
+            });
+        }
 
         // ===== MIDI Jukebox: hand-sequenced chiptunes, Sound Blaster energy =====
         // Notes are [midiNote, startBeat, durationBeats, channel] (ch 0 = square
