@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRUMMY WAREZ - 100% Legit Downloads</title>
+    <meta name="description" content="DRUMMY WAREZ — a satirical 1990s software emporium of hand-crafted web apps.">
+    <style>
+        /* ============ 90s FOUNDATION ============ */
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=VT323&display=swap');
+
+        * { box-sizing: border-box; }
+
+        html { -webkit-text-size-adjust: 100%; }
+
+        body {
+            margin: 0;
+            /* Classic 90s tiled starfield simulation */
+            background-color: #000000;
+            background-image:
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px),
+                radial-gradient(rgba(255,255,255,.4), rgba(255,255,255,.1) 2px, transparent 30px);
+            background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+            background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+            font-family: 'Times New Roman', Times, serif;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .comic-sans { font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; }
+        .terminal-font { font-family: 'VT323', monospace; }
+
+        /* ============ MARCHING ANTS ============ */
+        /* The real deal: four animated dashed edges crawling clockwise */
+        .ants {
+            padding: 4px;
+            background:
+                linear-gradient(90deg, #00ff00 50%, transparent 50%) repeat-x,
+                linear-gradient(90deg, #00ff00 50%, transparent 50%) repeat-x,
+                linear-gradient(0deg,  #00ff00 50%, transparent 50%) repeat-y,
+                linear-gradient(0deg,  #00ff00 50%, transparent 50%) repeat-y;
+            background-size: 12px 3px, 12px 3px, 3px 12px, 3px 12px;
+            background-position: 0 0, 0 100%, 0 0, 100% 0;
+            animation: march 0.4s linear infinite;
+        }
+        .ants-hot {
+            background-image:
+                linear-gradient(90deg, #ff00ff 50%, transparent 50%),
+                linear-gradient(90deg, #ff00ff 50%, transparent 50%),
+                linear-gradient(0deg,  #ff00ff 50%, transparent 50%),
+                linear-gradient(0deg,  #ff00ff 50%, transparent 50%);
+        }
+        @keyframes march {
+            to { background-position: 12px 0, -12px 100%, 0 -12px, 100% 12px; }
+        }
+
+        /* ============ WORDART ============ */
+        .wordart {
+            font-family: Impact, 'Arial Black', sans-serif;
+            font-size: clamp(2.4rem, 14vw, 5.5rem);
+            font-style: italic;
+            font-weight: bold;
+            line-height: 1.05;
+            color: #ffff00;
+            text-shadow:
+                3px 3px 0 #ff0000,
+                6px 6px 0 #0000ff;
+            transform: skew(-10deg) rotate(-2deg);
+            display: inline-block;
+            animation: pulse 2s infinite;
+            margin: 0;
+            word-break: keep-all;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) skew(-10deg) rotate(-2deg); }
+            50% { transform: scale(1.05) skew(-10deg) rotate(-2deg); }
+        }
+
+        /* ============ WIN95 CHROME ============ */
+        .win95-window {
+            background: #c0c0c0;
+            color: #000000;
+            border-top: 3px solid #ffffff;
+            border-left: 3px solid #ffffff;
+            border-right: 3px solid #000000;
+            border-bottom: 3px solid #000000;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .win95-header {
+            background: linear-gradient(90deg, #0000aa, #1084d0);
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            padding: 4px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .win95-header .title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .win95-button {
+            background: #c0c0c0;
+            color: #000000;
+            border-top: 2px solid #ffffff;
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            padding: 4px 12px;
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+        .win95-button:active {
+            border-top: 2px solid #000000;
+            border-left: 2px solid #000000;
+            border-right: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;
+            padding: 5px 11px 3px 13px;
+        }
+
+        /* ============ UGLINESS UTILITIES ============ */
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        .spin-3d { display: inline-block; animation: spin3d 3s linear infinite; }
+        @keyframes spin3d { to { transform: rotateY(360deg); } }
+
+        .rainbow-text {
+            animation: rainbow 2s linear infinite;
+        }
+        @keyframes rainbow {
+            0% { color: #ff0000; } 20% { color: #ffff00; } 40% { color: #00ff00; }
+            60% { color: #00ffff; } 80% { color: #ff00ff; } 100% { color: #ff0000; }
+        }
+
+        .hazard-tape {
+            background: repeating-linear-gradient(45deg, #ffff00, #ffff00 20px, #000000 20px, #000000 40px);
+            height: 20px;
+            width: 100%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 15px #ffff00;
+        }
+
+        /* ============ LAYOUT ============ */
+        .marquee-bar {
+            width: 100%;
+            background: #0000aa;
+            color: #ffffff;
+            padding: 4px 0;
+            border-bottom: 4px solid #00ffff;
+        }
+        .marquee-bar marquee {
+            font-family: 'Courier New', monospace;
+            font-size: clamp(0.85rem, 3vw, 1.25rem);
+            font-weight: bold;
+            letter-spacing: 0.1em;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1152px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .tagline {
+            font-size: clamp(1.1rem, 4vw, 1.5rem);
+            color: #00ffff;
+            font-weight: bold;
+            margin: 0;
+        }
+        .tagline .new-flash {
+            color: #ff4444;
+            font-size: 1.25em;
+        }
+        .construction {
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(0.85rem, 3.5vw, 1.1rem);
+            margin: 0;
+        }
+
+        main {
+            width: 100%;
+            max-width: 1152px;
+            margin: 0 auto;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .app-body { padding: 1rem; flex-grow: 1; }
+        @media (min-width: 640px) { .app-body { padding: 1.25rem; } }
+
+        .app-titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #808080;
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .app-titlebar h2 {
+            margin: 0;
+            font-size: clamp(1.6rem, 6vw, 2rem);
+            color: #0000aa;
+        }
+        .app-link {
+            color: #0000ee;
+            font-size: 0.85rem;
+            display: block;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .pitch-quote {
+            font-style: italic;
+            color: #aa0000;
+            font-weight: bold;
+            background: #ffff99;
+            padding: 0.6rem;
+            border: 1px dashed #ff0000;
+            font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+            margin: 0 0 1rem 0;
+        }
+
+        .retro-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1rem;
+            background-color: #ffffff;
+        }
+        .retro-table th, .retro-table td {
+            border: 1px solid #000000;
+            padding: 5px 6px;
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            text-align: left;
+            vertical-align: top;
+        }
+        .retro-table th { background-color: #0000aa; color: #ffffff; width: 34%; }
+        .retro-table .fine-print { font-size: 0.7rem; color: #555; }
+
+        .scroll-panel {
+            background: #ffffff;
+            padding: 0.75rem;
+            border: inset 3px #888;
+            margin-top: 1rem;
+            max-height: 16rem;
+            overflow-y: auto;
+            font-family: Arial, sans-serif;
+            -webkit-overflow-scrolling: touch;
+        }
+        .scroll-panel h3, .scroll-panel h4 {
+            margin: 0 0 0.5rem 0;
+            color: #0000aa;
+            border-bottom: 1px solid #000;
+            font-size: 1rem;
+        }
+        .scroll-panel h3 .arrow, .scroll-panel h4 .arrow { color: #cc0000; }
+        .scroll-panel p, .scroll-panel li { font-size: 0.85rem; line-height: 1.45; }
+        .scroll-panel ul { padding-left: 1.25rem; margin: 0 0 1rem 0; }
+        .scroll-panel li { margin-bottom: 0.4rem; }
+        .highlight-tag {
+            background: #ffff99;
+            color: #cc0000;
+            display: inline-block;
+            padding: 0 4px;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .dos-panel {
+            margin-top: 1rem;
+            background: #000000;
+            color: #00ff00;
+            font-family: 'VT323', monospace;
+            padding: 0.75rem;
+            font-size: clamp(0.95rem, 3.5vw, 1.1rem);
+            line-height: 1.3;
+            border: 2px solid #666;
+        }
+        .dos-panel p { margin: 0 0 0.3rem 0; }
+        .dos-panel .dos-white { color: #ffffff; }
+        .dos-panel .dos-yellow { color: #ffff00; margin-top: 0.5rem; }
+
+        .testimonials {
+            margin-top: 1rem;
+            background: #e0e0e0;
+            color: #333;
+            border: 1px solid #808080;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            font-style: italic;
+            height: 5.5rem;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 2px 2px 4px rgba(0,0,0,0.3);
+            font-family: Arial, sans-serif;
+        }
+        .testimonials .label {
+            position: absolute;
+            top: 0; left: 0;
+            background: #000080;
+            color: #fff;
+            font-weight: bold;
+            font-style: normal;
+            padding: 1px 6px;
+            font-size: 0.65rem;
+            z-index: 2;
+        }
+        .testimonials marquee { height: 100%; padding-top: 1rem; }
+        .testimonials p { margin: 0 0 0.75rem 0; }
+
+        .app-footer {
+            background: #b0b0b0;
+            padding: 0.75rem;
+            border-top: 2px solid #ffffff;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .btn-download {
+            font-size: 1rem;
+            padding: 8px 18px;
+        }
+        .btn-loud {
+            background: #ffdd00;
+            color: #cc0000;
+            font-size: 1.1rem;
+            font-weight: 900;
+            padding: 8px 20px;
+        }
+
+        .dl-header {
+            background: #000;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .dl-header h2 {
+            margin: 0;
+            font-family: 'VT323', monospace;
+            font-size: clamp(1.8rem, 7vw, 2.5rem);
+            background: linear-gradient(90deg, #4ade80, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .dl-header .ver { color: #fff; text-align: center; font-family: 'Courier New', monospace; font-size: 0.7rem; }
+        .dl-header .ver .icon { font-size: 1.8rem; display: block; }
+
+        .subhead {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #660099;
+            margin: 0 0 0.75rem 0;
+        }
+
+        .boxed-copy {
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            background: #ffffff;
+            padding: 0.6rem;
+            border: 1px solid #000;
+            box-shadow: 3px 3px 0 0 #000;
+            margin: 0 0 1rem 0;
+            line-height: 1.5;
+        }
+
+        /* ============ ASSISTANT ============ */
+        .assistant {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            animation: float 4s ease-in-out infinite;
+            z-index: 50;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-16px); }
+        }
+        .assistant .paperclip {
+            font-size: 3rem;
+            cursor: pointer;
+            text-align: right;
+            filter: drop-shadow(0 0 6px #00ffff);
+        }
+        .speech-bubble {
+            background: #ffffe1;
+            border: 1px solid #000;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+            color: #000;
+            font-size: 0.85rem;
+            position: absolute;
+            bottom: 64px;
+            right: 12px;
+            width: min(190px, 60vw);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            right: 24px;
+            border: 10px solid transparent;
+            border-top-color: #ffffe1;
+            border-bottom: 0;
+            border-left: 0;
+        }
+        @media (max-width: 480px) {
+            .assistant .paperclip { font-size: 2.4rem; }
+            .speech-bubble { font-size: 0.75rem; }
+        }
+
+        /* ============ FOOTER ============ */
+        footer {
+            width: 100%;
+            max-width: 1152px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 2.5rem 1rem 7rem 1rem; /* bottom clearance for the assistant */
+        }
+        .badge-row {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            font-size: 1.8rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+        .badge-row span { cursor: pointer; transition: transform 0.2s; }
+        .badge-row span:hover { transform: scale(1.3); }
+
+        .hit-counter-box {
+            display: inline-block;
+            border: 4px solid #555;
+            background: #000;
+            padding: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .hit-counter-box .label { color: #999; font-size: 0.65rem; display: block; margin-bottom: 4px; letter-spacing: 0.15em; }
+        #hit-counter { display: flex; gap: 3px; justify-content: center; }
+        #hit-counter div {
+            background: #1a1a1a;
+            color: #ff3333;
+            padding: 2px 7px;
+            font-size: 1.5rem;
+            font-family: 'VT323', monospace;
+            border: 1px solid #444;
+        }
+
+        .webring {
+            margin-top: 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #00ffff;
+        }
+        .webring a { color: #00ffff; }
+
+        .copyright { font-size: 0.7rem; color: #777; margin-top: 2rem; font-family: 'Courier New', monospace; line-height: 1.6; }
+
+        /* ============ MODAL ============ */
+        #custom-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #custom-modal .win95-window { max-width: 24rem; }
+        #custom-modal .win95-header { background: #aa0000; }
+        .modal-body { padding: 1.25rem; display: flex; gap: 1rem; }
+        .modal-body .icon { font-size: 2.2rem; }
+        .modal-body .content { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        #modal-text {
+            font-family: Arial, sans-serif;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: pre-wrap;
+            color: #000;
+            margin: 0 0 1.25rem 0;
+        }
+        .modal-ok-row { display: flex; justify-content: center; }
+        .modal-ok-row .win95-button { width: 6rem; }
+
+        /* ============ SPARKLE TRAIL ============ */
+        .sparkle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 200;
+            font-size: 0.8rem;
+            animation: sparkle-fade 0.8s linear forwards;
+        }
+        @keyframes sparkle-fade {
+            to { opacity: 0; transform: translateY(14px) scale(0.3); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant { animation: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar / Marquee -->
+    <div class="marquee-bar">
+        <marquee scrollamount="8">
+            🔥 💾 WELCOME TO DRUMMY WAREZ — 100% LEGIT, 0% VIRUSES (PROBABLY) 💾 🔥 >>> NO RATIO REQUIRED >>> ALL APPS CRACKED BY THE DEVELOPER HIMSELF (HE HAS THE PASSWORDS) >>> BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 AT 800x600 🚀
+        </marquee>
+    </div>
+
+    <!-- Header Section -->
+    <header>
+        <h1 class="wordart">DRUMMY<br>WAREZ</h1>
+        <div class="hazard-tape"></div>
+
+        <p class="tagline comic-sans">
+            <span class="blink new-flash">NEW!</span>
+            Curated Micro-Sites &amp; Function Apps!
+        </p>
+        <p class="construction">
+            [ Under Construction Since 1998 ] <span class="rainbow-text">▓▒░ FREE D/L 4 ALL ░▒▓</span>
+        </p>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+
+        <!-- ================= APP 1: QUAGMIRE ================= -->
+        <div class="ants">
+        <article class="win95-window">
+            <div class="win95-header">
+                <span class="title"><span>💾</span> C:\WAREZ\QUAGMIRE.EXE</span>
+                <button class="win95-button" onclick="closeApp(this)">X</button>
+            </div>
+
+            <div class="app-body">
+                <div class="app-titlebar">
+                    <h2>Quagmire</h2>
+                    <div style="text-align:center;">
+                        <span class="spin-3d" style="font-size:2.2rem; display:block;">🌐</span>
+                        <a href="#" class="app-link" onclick="showModal('Navigating to unsunkwords.com... \n\nError 404: Synergy overload.'); return false;">unsunkwords.com</a>
+                    </div>
+                </div>
+
+                <p class="pitch-quote">
+                    "Synergising lexical retrieval through non-linear vertical spatial grids to disrupt the cognitive stagnation landscape."
+                </p>
+
+                <table class="retro-table">
+                    <tbody>
+                        <tr>
+                            <th>Developer</th>
+                            <td>Sole Proprietor of localhost:3000</td>
+                        </tr>
+                        <tr>
+                            <th>Category</th>
+                            <td>Vocabulary Inflation Utility</td>
+                        </tr>
+                        <tr>
+                            <th>Size</th>
+                            <td>1.2MB<br><span class="fine-print">(mostly uncompressed SVG icons we forgot to minify)</span></td>
+                        </tr>
+                        <tr>
+                            <th>In-App Purchases</th>
+                            <td>"Pay £0.00 to unlock consonants"<br><strong class="fine-print" style="color:#007700;">(Pre-activated)</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="scroll-panel">
+                    <h3><span class="arrow">▶</span> The Pitch: The Vocabulary Deficit</h3>
+                    <p>
+                        In a world dominated by brain-rotting short-form video content, the human vocabulary is shrinking by 1.2% every quarter. Standard crosswords are a legacy, linear construct of the print era. <strong>Unsunk Words</strong> solves this by forcing your brain to construct vertical lexical structures under extreme resource constraints. We do not just let you play with words; we synthesise your cognitive bandwidth.
+                    </p>
+
+                    <h3 style="margin-top:1rem;"><span class="arrow">▶</span> Proprietary Features</h3>
+                    <ul>
+                        <li><strong>Non-Linear Lexical Recycling:</strong> Why use a letter once when you can exploit it up to three times? Our proprietary reuse algorithms maximise consonant utility.</li>
+                        <li><strong>Edge-Calculated Validation:</strong> Our dictionary lookups do not rely on slow, centralised cloud databases. We dump the entire English dictionary directly into your browser's memory, ensuring your laptop fan runs at maximum velocity.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="app-footer">
+                <button class="win95-button btn-download" onclick="showModal('Warning: Downloading dictionary to RAM. Your laptop fan may begin to hover.')">
+                    <span style="color:#007700;">↓</span> Install (1.2MB)
+                </button>
+            </div>
+        </article>
+        </div>
+
+        <!-- ================= APP 2: URSOUNDM8 ================= -->
+        <div class="ants ants-hot">
+        <article class="win95-window">
+            <div class="win95-header">
+                <span class="title"><span>💿</span> C:\WAREZ\URSOUNDM8.EXE</span>
+                <button class="win95-button" onclick="closeApp(this)">X</button>
+            </div>
+
+            <div class="app-body">
+                <div class="dl-header">
+                    <h2 class="blink">ursoundm8.ai</h2>
+                    <div class="ver">
+                        <span class="icon">🔊</span>
+                        v 1.0.42
+                    </div>
+                </div>
+
+                <h3 class="subhead comic-sans" style="margin-top:1rem;">
+                    Disrupting the Loudness War 🔥
+                </h3>
+
+                <p class="boxed-copy">
+                    Are you tired of your bedroom-produced tracks sounding like they were recorded inside a wet cardboard box? Standard limiters are a legacy constraint of the physical world. <strong>Master-Class.io</strong> utilises cutting-edge, client-side WebAssembly to dynamically flatline your dynamic range, ensuring your music is loud enough to cause immediate listener fatigue.<br><br>
+                    <em>We do not just turn the volume up; we synergise your waveforms.</em>
+                </p>
+
+                <div class="scroll-panel" style="max-height:14rem;">
+                    <span class="highlight-tag">Key Synergies &amp; Proprietary Features</span>
+                    <ul style="font-size:0.8rem;">
+                        <li><strong>Hypersonic Analogue Warmth Simulation:</strong> Our engineers have successfully simulated the warmth of a vintage British mixing desk. We did this by adding a subtle orange colour gradient to the waveform display. You can literally see the warmth.</li>
+                        <li><strong>No-Code Acoustic Optimisation:</strong> Zero dials, zero sliders, zero barrier to entry. Our proprietary "Make Louder" button bypasses the need for any actual audio engineering knowledge or talent.</li>
+                        <li><strong>Serverless Zero-Trust Local Audio Buffering:</strong> We do not steal your files because our server hosting budget is exactly £0 per month. Your data remains trapped inside your own browser, just as nature intended.</li>
+                        <li><strong>Fully Responsive Dynamic Clipping:</strong> If your CPU starts smoking, that is just the raw power of the Web Audio API rendering real-time saturation directly into your RAM.</li>
+                    </ul>
+
+                    <h4 style="margin-top:1rem;">What's New in Version 1.0.42</h4>
+                    <ul style="font-size:0.8rem;">
+                        <li><strong>Major Performance Upgrade:</strong> Resolved an issue where importing a simple WAV file caused the fan on your MacBook Pro to sound like a Boeing 747 taking off. The fan now sounds like a slightly smaller Embraer regional jet.</li>
+                        <li><strong>Syntactical Refactoring:</strong> We renamed "Volume Slider" to "Spatial Gain Maximiser" to better align with our seed-funding slide deck.</li>
+                        <li><strong>Vibe Alignment:</strong> Refined the micro-interactions so they feel more "organic", which is tech-speak for "the UI has a slight input lag that we cannot figure out how to fix."</li>
+                    </ul>
+                </div>
+
+                <!-- DOS Terminal Privacy Label -->
+                <div class="dos-panel">
+                    <p class="dos-white">We care about your privacy, mostly because building a database to track you sounds like a lot of work.</p>
+                    <p>[ PRIVACY NUTRITION LABEL ]</p>
+                    <p>---------------------------------</p>
+                    <p class="dos-yellow">DATA USED TO TRACK YOU:</p>
+                    <p>- None (we literally do not know who you are)</p>
+                    <p class="dos-yellow">DATA LINKED TO YOU:</p>
+                    <p>- Your poor taste in basslines (judged locally)</p>
+                    <p class="dos-yellow">DATA NOT LINKED TO YOU:</p>
+                    <p>- Your actual productivity levels (0% captured)</p>
+                    <p>---------------------------------</p>
+                </div>
+
+                <!-- Marquee Testimonials -->
+                <div class="testimonials">
+                    <div class="label">USER TESTIMONIALS</div>
+                    <marquee direction="up" scrollamount="1">
+                        <p><strong>"An absolute paradigm shift."</strong><br>- Chad, Venture Capitalist &amp; Part-time Ambient Techno Producer</p>
+                        <p><strong>"I clicked 'Master' and my browser tab instantly crashed. The resulting silence had incredible dynamic range. Highly recommend."</strong><br>- Sarah, Bedroom Pop Artiste</p>
+                        <p><strong>"Please stop building web apps and come to bed."</strong><br>- Developer's Wife</p>
+                    </marquee>
+                </div>
+            </div>
+
+            <div class="app-footer">
+                <button class="win95-button btn-loud"
+                        onclick="showModal('SUCCESS!\n\nYour dynamic range has been successfully flattened to 0. \n\nLOUDNESS = MAXIMIZED.')">
+                    MAKE LOUDER 🔊
+                </button>
+            </div>
+        </article>
+        </div>
+
+    </main>
+
+    <!-- Floating '90s Assistant -->
+    <div class="assistant">
+        <div class="speech-bubble" id="assistant-bubble">
+            Looks like you're trying to download some warez! Need me to synergize your portfolio?
+        </div>
+        <div class="paperclip" onclick="pokeAssistant()">
+            📎👀
+        </div>
+    </div>
+
+    <!-- Footer Area -->
+    <footer>
+        <div class="hazard-tape"></div>
+
+        <div class="badge-row">
+            <span title="HTML 4.0 Certified">📝</span>
+            <span title="Not tested on animals">🐾</span>
+            <span title="Y2K Compliant">🕰️</span>
+            <span title="Winner: Best New Warez Site 1997 (self-awarded)">🏆</span>
+        </div>
+
+        <div class="hit-counter-box">
+            <span class="label">YOU ARE VISITOR NUMBER:</span>
+            <div id="hit-counter"></div>
+        </div>
+
+        <p class="webring">
+            &lt;&lt; <a href="#" onclick="showModal('The previous site in the webring closed in 2003.'); return false;">PREV</a> |
+            <strong>1984DRUM WEBRING</strong> |
+            <a href="#" onclick="showModal('The next site in the webring is now a casino.'); return false;">NEXT</a> &gt;&gt;
+        </p>
+
+        <p class="copyright">
+            © 1999-2026 DRUMMY WAREZ Solutions Inc. All rights reserved locally.<br>
+            Formerly "Satirical App Store" — rebranded after a focus group of one.<br>
+            Hosted on the World Wide Web at warez.1984drum.com
+        </p>
+    </footer>
+
+    <!-- Custom Modal Overlay (replaces alert) -->
+    <div id="custom-modal">
+        <div class="win95-window">
+            <div class="win95-header">
+                <span class="title">⚠️ SYSTEM MESSAGE</span>
+                <button class="win95-button" onclick="closeModal()">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="icon">⚠️</div>
+                <div class="content">
+                    <p id="modal-text"></p>
+                    <div class="modal-ok-row">
+                        <button class="win95-button" onclick="closeModal()">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Custom Modal Logic
+        const modal = document.getElementById('custom-modal');
+        const modalText = document.getElementById('modal-text');
+
+        function showModal(message) {
+            modalText.textContent = message;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // Close app logic (joke)
+        function closeApp(btnElement) {
+            const app = btnElement.closest('.win95-window');
+            app.style.display = 'none';
+            setTimeout(() => {
+                showModal("Error: Cannot close application.\nThe Synergy is too powerful to be contained.");
+                app.style.display = 'flex';
+            }, 1000);
+        }
+
+        // Random Hit Counter Generator
+        function generateHitCounter() {
+            const counterDiv = document.getElementById('hit-counter');
+            const hits = Math.floor(Math.random() * (9999999 - 1000000 + 1) + 1000000).toString();
+            for (const char of hits) {
+                const digitBox = document.createElement('div');
+                digitBox.textContent = char;
+                counterDiv.appendChild(digitBox);
+            }
+        }
+
+        // Assistant Logic
+        const assistantPhrases = [
+            "Looks like you're trying to download some warez! Need help?",
+            "Have you considered adding Blockchain to this?",
+            "Error: Not enough buzzwords detected in your sector.",
+            "I'm actually a highly advanced LLM trapped in a paperclip body.",
+            "Don't forget to synergize your deliverables by EOD!",
+            "This site is 100% legit. I checked personally.",
+            "Your download will begin in 1997 business days."
+        ];
+
+        function pokeAssistant() {
+            const bubble = document.getElementById('assistant-bubble');
+            bubble.textContent = assistantPhrases[Math.floor(Math.random() * assistantPhrases.length)];
+            const assistant = bubble.parentElement;
+            assistant.style.animation = 'none';
+            setTimeout(() => { assistant.style.animation = 'float 4s ease-in-out infinite'; }, 10);
+        }
+
+        // Sparkle cursor trail (desktop only, throttled)
+        let lastSparkle = 0;
+        document.addEventListener('mousemove', (e) => {
+            const now = performance.now();
+            if (now - lastSparkle < 90) return;
+            lastSparkle = now;
+            const s = document.createElement('span');
+            s.className = 'sparkle';
+            s.textContent = '✨';
+            s.style.left = (e.clientX + 8) + 'px';
+            s.style.top = (e.clientY + 8) + 'px';
+            document.body.appendChild(s);
+            setTimeout(() => s.remove(), 800);
+        });
+
+        // Initialize
+        generateHitCounter();
+    </script>
+</body>
+</html>
