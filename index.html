@@ -53,6 +53,20 @@
                 linear-gradient(0deg,  #ff00ff 50%, transparent 50%),
                 linear-gradient(0deg,  #ff00ff 50%, transparent 50%);
         }
+        .ants-cyan {
+            background-image:
+                linear-gradient(90deg, #00ffff 50%, transparent 50%),
+                linear-gradient(90deg, #00ffff 50%, transparent 50%),
+                linear-gradient(0deg,  #00ffff 50%, transparent 50%),
+                linear-gradient(0deg,  #00ffff 50%, transparent 50%);
+        }
+        .ants-amber {
+            background-image:
+                linear-gradient(90deg, #ff9900 50%, transparent 50%),
+                linear-gradient(90deg, #ff9900 50%, transparent 50%),
+                linear-gradient(0deg,  #ff9900 50%, transparent 50%),
+                linear-gradient(0deg,  #ff9900 50%, transparent 50%);
+        }
         @keyframes march {
             to { background-position: 12px 0, -12px 100%, 0 -12px, 100% 12px; }
         }
@@ -524,6 +538,30 @@
         .modal-ok-row { display: flex; justify-content: center; }
         .modal-ok-row .win95-button { width: 6rem; }
 
+        /* ============ ANCIENT PIG LIVE FEED ============ */
+        .pig-live {
+            margin-top: 1rem;
+            background: #ffffff;
+            border: inset 3px #888;
+            padding: 0.6rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            font-size: 0.8rem;
+            color: #333;
+        }
+        .pig-vibrate {
+            font-size: 1.8rem;
+            animation: vibrate 0.033s linear infinite alternate; /* exactly 60Hz, as marketed */
+        }
+        @keyframes vibrate {
+            from { transform: translate(-1px, 1px); }
+            to   { transform: translate(1px, -1px); }
+        }
+
+        .stars { color: #cc9900; letter-spacing: 0.1em; }
+
         /* ============ INTRO SEQUENCE ============ */
         #intro {
             position: fixed;
@@ -595,7 +633,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant, #llama { animation: none; }
+            .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant, #llama, .pig-vibrate { animation: none; }
         }
     </style>
 </head>
@@ -621,7 +659,7 @@
     <!-- Navbar / Marquee -->
     <div class="marquee-bar">
         <marquee scrollamount="8">
-            🔥 💾 WELCOME TO DRUMMY WAREZ — 100% LEGIT, 0% VIRUSES (PROBABLY) 💾 🔥 >>> NO RATIO REQUIRED >>> ALL APPS CRACKED BY THE DEVELOPER HIMSELF (HE HAS THE PASSWORDS) >>> BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 AT 800x600 🚀
+            🔥 💾 WELCOME TO DRUMMY WAREZ — 100% LEGIT, 0% VIRUSES (PROBABLY) 💾 🔥 >>> NO RATIO REQUIRED >>> ALL APPS CRACKED BY THE DEVELOPER HIMSELF (HE HAS THE PASSWORDS) >>> BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 AT 800x600 🚀 >>> NOW SERVING 4 (FOUR) APPS — DOUBLE THE WAREZ, SAME ZERO PRICE 💾
         </marquee>
     </div>
 
@@ -778,6 +816,220 @@
                 <button class="win95-button btn-loud"
                         onclick="showModal('SUCCESS!\n\nYour dynamic range has been successfully flattened to 0. \n\nLOUDNESS = MAXIMIZED.')">
                     MAKE LOUDER 🔊
+                </button>
+            </div>
+        </article>
+        </div>
+
+        <!-- ================= APP 3: GIGNITE.LIVE ================= -->
+        <div class="ants ants-cyan">
+        <article class="win95-window">
+            <div class="win95-header">
+                <span class="title"><span>🎸</span> C:\WAREZ\GIGNITE.EXE</span>
+                <button class="win95-button" onclick="closeApp(this)">X</button>
+            </div>
+
+            <div class="app-body">
+                <div class="dl-header">
+                    <h2>gignite.live</h2>
+                    <div class="ver">
+                        <span class="icon spin-3d">🎸</span>
+                        v 1.2.4
+                    </div>
+                </div>
+
+                <h3 class="subhead comic-sans" style="margin-top:1rem;">
+                    Organising the Unorganisable 🚐
+                </h3>
+
+                <p class="pitch-quote">
+                    "Synergising the sticky-floor live music paradigm by offloading operational touring friction into automated, cloud-adjacent logistical pipelines."
+                </p>
+
+                <table class="retro-table">
+                    <tbody>
+                        <tr>
+                            <th>Developer</th>
+                            <td>A Solo Bassist with an Excel Obsession</td>
+                        </tr>
+                        <tr>
+                            <th>Category</th>
+                            <td>Touring Chaos Minimiser</td>
+                        </tr>
+                        <tr>
+                            <th>Compatibility</th>
+                            <td>Best viewed on cracked smartphone screens at 2:00 AM</td>
+                        </tr>
+                        <tr>
+                            <th>Price</th>
+                            <td>£0.00<br><span class="fine-print">(plus an optional 15% cut of your rider)</span></td>
+                        </tr>
+                        <tr>
+                            <th>Rating</th>
+                            <td><span class="stars">★★★★★</span><br><span class="fine-print">(voted for by the developer's mum and the band's driver)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="scroll-panel" style="max-height:14rem;">
+                    <h3><span class="arrow">▶</span> The Pitch: Organising the Unorganisable</h3>
+                    <p>
+                        Tour planning is historically a legacy mess of scribbled setlists, lost group chats, and petrol receipts that have faded into blank slips of paper. <strong>Gignite</strong> is a hyper-focused event delivery paradigm that translates the raw, chaotic energy of rock-and-roll into clean, beautiful Gantt charts. We do not just help you book shows; we monetise your stage presence.
+                    </p>
+
+                    <span class="highlight-tag">Key Synergies &amp; Proprietary Features</span>
+                    <ul style="font-size:0.8rem;">
+                        <li><strong>Decentralised Rider Optimisation:</strong> Our algorithm predicts exactly how many lukewarm cans of lager will be left in your dressing room, dynamically updating your requests based on local venue data.</li>
+                        <li><strong>Sticky-Floor Navigation Engine:</strong> A custom routing system designed to guide touring artists past low-clearance bridges and local administrative roadblocks.</li>
+                        <li><strong>Automated Invoice Saturation:</strong> Sends automated payment reminders to venue promoters using custom-built tone matrices that transition from "polite professional" to "existential threat" over a 14-day window.</li>
+                    </ul>
+
+                    <h4 style="margin-top:1rem;">What's New in Version 1.2.4</h4>
+                    <ul style="font-size:0.8rem;">
+                        <li><strong>Ego-Clash Protection:</strong> Added a feature that prevents the lead singer and lead guitarist from editing the digital setlist at the same time, reducing band breakups by 43%.</li>
+                        <li><strong>Decibel-to-Pound Conversion Tool:</strong> A speculative calculator that tells you exactly how much money you lost during that twenty-minute feedback solo.</li>
+                    </ul>
+                </div>
+
+                <!-- DOS Terminal Privacy Label -->
+                <div class="dos-panel">
+                    <p class="dos-white">We respect your data. We simply lack the organisational capacity to exploit it.</p>
+                    <p>[ PRIVACY NUTRITION LABEL ]</p>
+                    <p>---------------------------------</p>
+                    <p class="dos-yellow">DATA USED TO TRACK YOU:</p>
+                    <p>- Your actual location (to find the nearest kebab shop)</p>
+                    <p class="dos-yellow">DATA LINKED TO YOU:</p>
+                    <p>- Your complete inability to arrive at soundcheck on time</p>
+                    <p class="dos-yellow">DATA NOT LINKED TO YOU:</p>
+                    <p>- Your band's actual financial profit (0% detected)</p>
+                    <p>---------------------------------</p>
+                </div>
+
+                <!-- Marquee Testimonials -->
+                <div class="testimonials">
+                    <div class="label">USER TESTIMONIALS</div>
+                    <marquee direction="up" scrollamount="1">
+                        <p><strong>"We finally made it to the venue before doors opened. The promoter was terrified by our level of organisation."</strong><br>- The Whispering Turnips (Post-Punk Quartet)</p>
+                        <p><strong>"I don't know what a Gantt chart is, but the spreadsheet is green, so I assume we are making money."</strong><br>- Dave, Bass Player &amp; Designated Driver</p>
+                    </marquee>
+                </div>
+            </div>
+
+            <div class="app-footer">
+                <button class="win95-button" onclick="showModal('INVOICE REMINDER SENT (Day 1 of 14):\n\n“Hi mate! Just checking in :)”\n\nQueued for Day 14:\n“WE KNOW WHERE THE MIXING DESK LIVES.”')">
+                    SEND REMINDER 💷
+                </button>
+                <button class="win95-button btn-download" onclick="showModal('TOUR BOOKED!\n\n13 Gantt charts generated.\nThe drummer has already lost his copy.')">
+                    <span style="color:#007700;">↓</span> Install (13 Gantt charts)
+                </button>
+            </div>
+        </article>
+        </div>
+
+        <!-- ================= APP 4: ANCIENT PIG ================= -->
+        <div class="ants ants-amber">
+        <article class="win95-window">
+            <div class="win95-header">
+                <span class="title"><span>🐷</span> C:\WAREZ\ANCIENTPIG.EXE</span>
+                <button class="win95-button" onclick="closeApp(this)">X</button>
+            </div>
+
+            <div class="app-body">
+                <div class="app-titlebar">
+                    <h2>Ancient Pig</h2>
+                    <div style="text-align:center;">
+                        <span class="spin-3d" style="font-size:2.2rem; display:block;">🐷</span>
+                        <span class="fine-print" style="font-family:'Courier New',monospace; font-size:0.7rem; color:#555;">v 2.1.0</span>
+                    </div>
+                </div>
+
+                <p class="pitch-quote">
+                    "Reconceptualising 2D spatial navigation by leveraging an opinionated, zero-cloud vector-redirection API."
+                </p>
+
+                <table class="retro-table">
+                    <tbody>
+                        <tr>
+                            <th>Developer</th>
+                            <td>The Swine Physics Syndicate</td>
+                        </tr>
+                        <tr>
+                            <th>Category</th>
+                            <td>Anti-Gravity Ludonarrative Utility</td>
+                        </tr>
+                        <tr>
+                            <th>Architecture</th>
+                            <td>ECS with a Fixed-Timestep Jitter-Guard</td>
+                        </tr>
+                        <tr>
+                            <th>Storage</th>
+                            <td>100% Zero-Cloud Local-File Storage Backend</td>
+                        </tr>
+                        <tr>
+                            <th>Rating</th>
+                            <td><span class="stars">★★★★☆</span> 4.8/5<br><span class="fine-print">(0.2 stars deducted for extreme emotional difficulty)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="scroll-panel">
+                    <h3><span class="arrow">▶</span> The Pitch: Rejecting the Tyranny of Gravity</h3>
+                    <p>
+                        Why should players be bound by the oppressive, linear laws of traditional physics? <strong>Ancient Pig</strong> is a revolutionary 2D platform-game development ecosystem built on top of a highly opinionated, gravity-manipulation API. We have abstracted the concept of the standard jump button, replacing it with real-time, physics-based spatial vector redirection. It is not a platformer; it is a gravity-redefining interactive simulation.
+                    </p>
+
+                    <h3 style="margin-top:1rem;"><span class="arrow">▶</span> Proprietary Features &amp; Synergies</h3>
+                    <ul>
+                        <li><strong>60Hz Fixed-Timestep Jitter-Guard:</strong> We built a custom micro-accumulator loop because we refuse to trust standard browser rendering cycles with our precise porcine physics. Screen tearing is a legacy construct.</li>
+                        <li><strong>Zero-Cloud JSON Serialisation:</strong> Your levels are saved as beautiful, raw JSON directly to your machine. No cloud databases, no subscriptions, and absolutely no corporate overhead. Just local-first, artisanal file storage.</li>
+                        <li><strong>Anatomically Agnostic Collision Grid:</strong> A pixel-perfect collision detection engine that absolutely refuses to let your character clip through a solid wall, except when it does, which we market as a "quantum-tunneling gameplay feature".</li>
+                        <li><strong>The Entity Component System (ECS) Paradigm:</strong> A highly sophisticated, completely abstracted architectural layer where everything is a raw entity ID, successfully converting a simple jump mechanic into a three-hour architectural conversation.</li>
+                    </ul>
+
+                    <h4 style="margin-top:1rem;">What's New in Version 2.1.0</h4>
+                    <ul style="font-size:0.8rem;">
+                        <li><strong>Porcine Gravity-Manipulation Matrix:</strong> Standard platformers just let you fall down. Our advanced API allows you to manipulate gravity vectors dynamically, turning ceiling-bound navigation into a fluid-dynamic micro-interaction.</li>
+                        <li><strong>Organic Frame Desynchronisation:</strong> Added random frame-index offsets and tiny frame-rate jitters to all non-player character instances so they never march in lockstep. Because even in a simulated world, conformity is boring.</li>
+                    </ul>
+                </div>
+
+                <!-- Live feed of Playtester #14 -->
+                <div class="pig-live">
+                    <span class="pig-vibrate">🐷</span>
+                    <span><strong>LIVE FEED:</strong> Playtester #14's character — still inside the wall, vibrating at exactly 60Hz. Day 12. The pig has stopped asking why.</span>
+                </div>
+
+                <!-- DOS Terminal Privacy Label -->
+                <div class="dos-panel">
+                    <p class="dos-white">Your secrets are safe with us, for reasons of infrastructure rather than ethics.</p>
+                    <p>[ PRIVACY NUTRITION LABEL ]</p>
+                    <p>---------------------------------</p>
+                    <p class="dos-yellow">DATA USED TO TRACK YOU:</p>
+                    <p>- None (we do not have a server to send it to) [citation: trust us]</p>
+                    <p class="dos-yellow">DATA LINKED TO YOU:</p>
+                    <p>- Your keyboard-smash rate after falling into a spikes pit</p>
+                    <p class="dos-yellow">DATA NOT LINKED TO YOU:</p>
+                    <p>- Your physical coordination skills</p>
+                    <p>---------------------------------</p>
+                </div>
+
+                <!-- Marquee Testimonials -->
+                <div class="testimonials">
+                    <div class="label">USER TESTIMONIALS</div>
+                    <marquee direction="up" scrollamount="1">
+                        <p><strong>"I spent four hours trying to jump over a single box because I kept accidentally reversing my own gravity vector into the ceiling. It was art."</strong><br>- Indie Game Critic &amp; Turtleneck Enthusiast</p>
+                        <p><strong>"The code is incredibly beautiful, but my character is currently stuck inside a wall and vibrating at 60Hz."</strong><br>- Playtester #14</p>
+                    </marquee>
+                </div>
+            </div>
+
+            <div class="app-footer">
+                <button class="win95-button btn-download" onclick="showModal('DOWNLOADING ANCIENT PIG...\n\n1 file: level_final_FINAL_v2(3).json\n\nSaved locally. Artisanally.')">
+                    <span style="color:#007700;">↓</span> Install (raw JSON)
+                </button>
+                <button class="win95-button btn-loud" style="background:#ff9ecb; color:#7a0040; border-color:#7a0040;"
+                        onclick="showModal('GRAVITY VECTOR REVERSED.\n\nThe pig is now on the ceiling.\nThe pig is fine.\nYou are the one who has to live with this.')">
+                    INVERT GRAVITY 🐷
                 </button>
             </div>
         </article>
