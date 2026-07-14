@@ -415,6 +415,86 @@
             line-height: 1.5;
         }
 
+        /* ============ MIDI JUKEBOX ============ */
+        .midi-deck {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            z-index: 50;
+            width: 180px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .midi-row { display: flex; gap: 4px; }
+        .midi-row .win95-button { font-size: 0.7rem; padding: 3px 8px; }
+        #midi-toggle { flex-grow: 1; }
+        .midi-lcd {
+            background: #000;
+            color: #00ff00;
+            font-size: 0.95rem;
+            padding: 2px 5px;
+            border: inset 2px #888;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        @media (max-width: 480px) {
+            .midi-deck { width: 150px; bottom: 10px; left: 10px; }
+        }
+
+        /* ============ CLIPPY LANGUAGE SWITCH ============ */
+        .lang-flag {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: #c0c0c0;
+            color: #000;
+            border-top: 2px solid #ffffff;
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            font-family: Arial, sans-serif;
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 3px 6px;
+            cursor: pointer;
+            margin-top: 6px;
+            user-select: none;
+        }
+        .lang-flag svg { display: block; }
+        .lang-dead {
+            opacity: 0.45;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+
+        /* ============ BLUE SCREEN OF DEATH ============ */
+        #bsod {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: #0000aa;
+            color: #ffffff;
+            font-family: 'Lucida Console', 'Courier New', monospace;
+            font-size: clamp(0.7rem, 2.2vw, 0.95rem);
+            line-height: 1.6;
+            padding: clamp(1rem, 6vw, 4rem);
+            cursor: default;
+            white-space: pre-wrap;
+            overflow: hidden;
+        }
+        #bsod .bsod-title {
+            background: #aaaaaa;
+            color: #0000aa;
+            display: inline-block;
+            padding: 0 10px;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
         /* ============ ASSISTANT ============ */
         .assistant {
             position: fixed;
@@ -1037,6 +1117,15 @@
 
     </main>
 
+    <!-- MIDI Jukebox -->
+    <div class="midi-deck win95-window">
+        <div class="midi-row">
+            <button class="win95-button" id="midi-toggle" onclick="midiToggle()">▶ MIDI: OFF</button>
+            <button class="win95-button" id="midi-next" onclick="midiNext()" title="Next track">⏭</button>
+        </div>
+        <div class="midi-lcd terminal-font" id="midi-lcd">SOUND BLASTER 16 READY</div>
+    </div>
+
     <!-- Floating '90s Assistant -->
     <div class="assistant">
         <div class="speech-bubble" id="assistant-bubble">
@@ -1045,7 +1134,43 @@
         <div class="paperclip" onclick="pokeAssistant()">
             📎👀
         </div>
+        <div class="lang-flag" id="lang-flag" title="Switch assistant language to British English" onclick="tryBritish()">
+            <svg width="21" height="12" viewBox="0 0 21 12" aria-hidden="true">
+                <rect width="21" height="12" fill="#b22234"/>
+                <rect y="1.7" width="21" height="1.7" fill="#fff"/>
+                <rect y="5.1" width="21" height="1.7" fill="#fff"/>
+                <rect y="8.5" width="21" height="1.7" fill="#fff"/>
+                <rect width="9" height="6.8" fill="#3c3b6e"/>
+                <circle cx="2" cy="1.7" r="0.6" fill="#fff"/>
+                <circle cx="4.5" cy="1.7" r="0.6" fill="#fff"/>
+                <circle cx="7" cy="1.7" r="0.6" fill="#fff"/>
+                <circle cx="3.2" cy="3.4" r="0.6" fill="#fff"/>
+                <circle cx="5.8" cy="3.4" r="0.6" fill="#fff"/>
+                <circle cx="2" cy="5.1" r="0.6" fill="#fff"/>
+                <circle cx="4.5" cy="5.1" r="0.6" fill="#fff"/>
+                <circle cx="7" cy="5.1" r="0.6" fill="#fff"/>
+            </svg>
+            <span id="lang-label">EN-US &rarr; EN-GB?</span>
+        </div>
     </div>
+
+    <!-- Blue Screen of Death (localisation incident) -->
+    <div id="bsod"><span class="bsod-title">DRUMMY WAREZ</span>
+
+A problem has been detected and the assistant has been shut down
+to prevent damage to your vocabulary.
+
+LOCALISATION_FAILURE
+
+The assistant attempted to say "colour" and became unstable.
+Removing the letter U from system memory... failed.
+
+Technical information:
+
+*** STOP: 0x000000GB (0x0000TEA5, 0xCRUMPET5, 0x5C0NE5, 0x10RRY)
+
+Beginning dump of physical memory...
+Rebooting in American...</div>
 
     <!-- Footer Area -->
     <footer>
@@ -1178,6 +1303,136 @@
             document.body.appendChild(s);
             setTimeout(() => s.remove(), 800);
         });
+
+        // ===== MIDI Jukebox: hand-sequenced chiptunes, Sound Blaster energy =====
+        // Notes are [midiNote, startBeat, durationBeats, channel] (ch 0 = square
+        // lead, ch 1 = triangle bass).
+        const MIDI_TRACKS = [
+            {
+                name: 'CANYON2.MID', bpm: 112, beats: 16,
+                notes: [
+                    // bass: oom-pah over C / F / G / C
+                    [36,0,1,1],[43,1,1,1],[36,2,1,1],[43,3,1,1],
+                    [41,4,1,1],[48,5,1,1],[41,6,1,1],[48,7,1,1],
+                    [43,8,1,1],[50,9,1,1],[43,10,1,1],[50,11,1,1],
+                    [36,12,1,1],[43,13,1,1],[36,14,1,1],[43,15,1,1],
+                    // lead: relentless cheerful arpeggios
+                    [72,0,.5,0],[76,.5,.5,0],[79,1,.5,0],[76,1.5,.5,0],[72,2,.5,0],[76,2.5,.5,0],[79,3,.5,0],[84,3.5,.5,0],
+                    [81,4,.5,0],[77,4.5,.5,0],[72,5,.5,0],[77,5.5,.5,0],[81,6,.5,0],[77,6.5,.5,0],[84,7,.5,0],[81,7.5,.5,0],
+                    [83,8,.5,0],[79,8.5,.5,0],[74,9,.5,0],[79,9.5,.5,0],[83,10,.5,0],[79,10.5,.5,0],[86,11,.5,0],[83,11.5,.5,0],
+                    [84,12,.5,0],[79,12.5,.5,0],[76,13,.5,0],[72,13.5,.5,0],[76,14,.5,0],[79,14.5,.5,0],[84,15,1,0]
+                ]
+            },
+            {
+                name: 'PASSPORT.MID', bpm: 96, beats: 16,
+                notes: [
+                    // bass: Am / F / C / G
+                    [45,0,1,1],[52,1,1,1],[45,2,1,1],[52,3,1,1],
+                    [41,4,1,1],[48,5,1,1],[41,6,1,1],[48,7,1,1],
+                    [36,8,1,1],[43,9,1,1],[36,10,1,1],[43,11,1,1],
+                    [43,12,1,1],[50,13,1,1],[43,14,1,1],[50,15,1,1],
+                    // lead: wistful elevator melody
+                    [69,0,1,0],[72,1,.5,0],[76,1.5,.5,0],[81,2,1,0],[79,3,1,0],
+                    [77,4,.5,0],[81,4.5,.5,0],[84,5,1,0],[81,6,1,0],[77,7,1,0],
+                    [76,8,1,0],[79,9,1,0],[76,10,.5,0],[72,10.5,.5,0],[74,11,1,0],
+                    [71,12,1,0],[74,13,1,0],[67,14,2,0]
+                ]
+            },
+            {
+                name: 'HOGWILD.MID', bpm: 140, beats: 8,
+                notes: [
+                    // bass: galloping A minor descent
+                    [45,0,.5,1],[45,.5,.5,1],[45,1,.5,1],[45,1.5,.5,1],
+                    [45,2,.5,1],[45,2.5,.5,1],[45,3,.5,1],[45,3.5,.5,1],
+                    [43,4,.5,1],[43,4.5,.5,1],[41,5,.5,1],[41,5.5,.5,1],
+                    [40,6,.5,1],[40,6.5,.5,1],[40,7,.5,1],[40,7.5,.5,1],
+                    // lead: heroic pig anthem
+                    [69,0,.5,0],[72,.5,.5,0],[76,1,.5,0],[81,1.5,.5,0],[79,2,.5,0],[76,2.5,.5,0],[74,3,.5,0],[71,3.5,.5,0],
+                    [72,4,.5,0],[76,4.5,.5,0],[79,5,.5,0],[77,5.5,.5,0],[76,6,.5,0],[72,6.5,.5,0],[71,7,.5,0],[64,7.5,.5,0]
+                ]
+            }
+        ];
+
+        let midiCtx = null, midiMaster = null, midiTimer = null;
+        let midiTrack = 0, midiPlaying = false;
+        const midiLcd = document.getElementById('midi-lcd');
+        const midiBtn = document.getElementById('midi-toggle');
+
+        function midiNoteOn(t0, note, dur, ch) {
+            const osc = midiCtx.createOscillator();
+            const g = midiCtx.createGain();
+            const vol = ch === 1 ? 0.11 : 0.05;
+            osc.type = ch === 1 ? 'triangle' : 'square';
+            osc.frequency.value = 440 * Math.pow(2, (note - 69) / 12);
+            g.gain.setValueAtTime(0, t0);
+            g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+            g.gain.setValueAtTime(vol, Math.max(t0 + 0.011, t0 + dur - 0.04));
+            g.gain.linearRampToValueAtTime(0, t0 + dur);
+            osc.connect(g);
+            g.connect(midiMaster);
+            osc.start(t0);
+            osc.stop(t0 + dur + 0.05);
+        }
+
+        function midiScheduleLoop(track, when) {
+            const spb = 60 / track.bpm;
+            for (const [note, t, d, ch] of track.notes) {
+                midiNoteOn(when + t * spb, note, Math.max(0.08, d * spb * 0.92), ch);
+            }
+            const loopDur = track.beats * spb;
+            midiTimer = setTimeout(
+                () => midiScheduleLoop(track, when + loopDur),
+                Math.max(50, (when + loopDur - midiCtx.currentTime - 0.4) * 1000)
+            );
+        }
+
+        function midiStart() {
+            if (!midiCtx) midiCtx = new (window.AudioContext || window.webkitAudioContext)();
+            midiCtx.resume();
+            midiMaster = midiCtx.createGain();
+            midiMaster.gain.value = 0.6;
+            midiMaster.connect(midiCtx.destination);
+            midiScheduleLoop(MIDI_TRACKS[midiTrack], midiCtx.currentTime + 0.1);
+            midiPlaying = true;
+            midiBtn.textContent = '■ MIDI: ON';
+            midiLcd.textContent = '♪ ' + MIDI_TRACKS[midiTrack].name;
+        }
+
+        function midiStop() {
+            clearTimeout(midiTimer);
+            if (midiMaster) midiMaster.disconnect();
+            midiPlaying = false;
+            midiBtn.textContent = '▶ MIDI: OFF';
+            midiLcd.textContent = 'SOUND OFF';
+        }
+
+        function midiToggle() { midiPlaying ? midiStop() : midiStart(); }
+
+        function midiNext() {
+            midiTrack = (midiTrack + 1) % MIDI_TRACKS.length;
+            if (midiPlaying) { midiStop(); midiStart(); }
+            else midiLcd.textContent = 'CUED: ' + MIDI_TRACKS[midiTrack].name;
+        }
+
+        // ===== Clippy language switch: a localisation incident =====
+        let langLocked = false;
+        function tryBritish() {
+            if (langLocked) return;
+            langLocked = true;
+            const bsod = document.getElementById('bsod');
+            const wasPlaying = midiPlaying;
+            if (wasPlaying) midiStop(); // a real crash takes the sound card with it
+            bsod.style.display = 'block';
+            setTimeout(() => {
+                bsod.style.display = 'none';
+                document.getElementById('assistant-bubble').textContent = 'Sorry, I can only be me.';
+                const flag = document.getElementById('lang-flag');
+                flag.classList.add('lang-dead');
+                flag.title = 'Language selection permanently unavailable';
+                document.getElementById('lang-label').textContent = 'EN-US 4EVER';
+                if (wasPlaying) midiStart();
+            }, 3000);
+        }
 
         // ===== Intro: under construction (1.5s) -> warp speed (~3s) -> page =====
         (function () {
