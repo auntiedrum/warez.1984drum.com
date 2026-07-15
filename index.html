@@ -724,6 +724,49 @@
             from { transform: scale(0.6); opacity: 1; }
             to   { transform: scale(2.4); opacity: 0; }
         }
+        .boom-flash {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            pointer-events: none;
+            background: #ffffff;
+            animation: boom-flash-fade 0.22s ease-out forwards;
+        }
+        @keyframes boom-flash-fade {
+            from { opacity: 0.75; }
+            to   { opacity: 0; }
+        }
+        .boom-ring {
+            position: fixed;
+            z-index: 45;
+            pointer-events: none;
+            width: 24px;
+            height: 24px;
+            margin: -12px 0 0 -12px;
+            border: 4px solid #ffe14d;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #ff5500, inset 0 0 12px #ff5500;
+            animation: boom-ring-grow 0.65s ease-out forwards;
+        }
+        @keyframes boom-ring-grow {
+            from { transform: scale(0.3); opacity: 1; }
+            to   { transform: scale(18);  opacity: 0; }
+        }
+        body.shaking .marquee-bar,
+        body.shaking header,
+        body.shaking main,
+        body.shaking footer {
+            animation: screenshake 0.4s linear;
+        }
+        @keyframes screenshake {
+            0%, 100% { transform: translate(0, 0); }
+            15% { transform: translate(-8px, 5px); }
+            30% { transform: translate(7px, -6px); }
+            45% { transform: translate(-6px, -4px); }
+            60% { transform: translate(5px, 6px); }
+            75% { transform: translate(-4px, 2px); }
+            90% { transform: translate(3px, -2px); }
+        }
 
         /* ============ WAND PARTICLE FX ============ */
         .sparkle {
@@ -1359,6 +1402,76 @@ Rebooting in American...</div>
             });
         }
 
+        // ===== Arcade SFX: pews and booms via Web Audio =====
+        // The context unlocks on the first click/tap (browser autoplay rules);
+        // until then llamas fire silently, which is canon for a muted 90s PC.
+        let sfxCtx = null, sfxNoiseBuf = null;
+        function sfxGet() {
+            if (!sfxCtx) {
+                try { sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+                catch (e) { return null; }
+            }
+            if (sfxCtx.state === 'suspended') sfxCtx.resume();
+            return sfxCtx;
+        }
+        document.addEventListener('pointerdown', sfxGet, { once: true });
+
+        function sfxNoiseSrc(ctx) {
+            if (!sfxNoiseBuf) {
+                sfxNoiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+                const d = sfxNoiseBuf.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            }
+            const src = ctx.createBufferSource();
+            src.buffer = sfxNoiseBuf;
+            return src;
+        }
+
+        function sfxShot(kind) {
+            const ctx = sfxGet();
+            if (!ctx || ctx.state !== 'running') return;
+            const t = ctx.currentTime;
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = 'square';
+            if (kind === 'coke') {          // fizzy up-chirp
+                o.frequency.setValueAtTime(350, t);
+                o.frequency.exponentialRampToValueAtTime(1300, t + 0.1);
+            } else {                        // cheeseburger pew
+                o.frequency.setValueAtTime(950, t);
+                o.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+            }
+            g.gain.setValueAtTime(0.1, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.start(t);
+            o.stop(t + 0.15);
+        }
+
+        function sfxExplode() {
+            const ctx = sfxGet();
+            if (!ctx || ctx.state !== 'running') return;
+            const t = ctx.currentTime;
+            // white-noise boom through a collapsing lowpass
+            const n = sfxNoiseSrc(ctx), f = ctx.createBiquadFilter(), g = ctx.createGain();
+            f.type = 'lowpass';
+            f.frequency.setValueAtTime(2800, t);
+            f.frequency.exponentialRampToValueAtTime(60, t + 0.7);
+            g.gain.setValueAtTime(0.45, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+            n.connect(f); f.connect(g); g.connect(ctx.destination);
+            n.start(t); n.stop(t + 0.85);
+            // sub-bass drop for the gut punch
+            const o = ctx.createOscillator(), og = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(170, t);
+            o.frequency.exponentialRampToValueAtTime(32, t + 0.5);
+            og.gain.setValueAtTime(0.4, t);
+            og.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+            o.connect(og); og.connect(ctx.destination);
+            o.start(t); o.stop(t + 0.6);
+        }
+
         // ===== MIDI Jukebox: hand-sequenced chiptunes, Sound Blaster energy =====
         // Notes are [midiNote, startBeat, durationBeats, channel] (ch 0 = square
         // lead, ch 1 = triangle bass).
@@ -1405,6 +1518,89 @@ Rebooting in American...</div>
                     [69,0,.5,0],[72,.5,.5,0],[76,1,.5,0],[81,1.5,.5,0],[79,2,.5,0],[76,2.5,.5,0],[74,3,.5,0],[71,3.5,.5,0],
                     [72,4,.5,0],[76,4.5,.5,0],[79,5,.5,0],[77,5.5,.5,0],[76,6,.5,0],[72,6.5,.5,0],[71,7,.5,0],[64,7.5,.5,0]
                 ]
+            },
+            {
+                // Scott Joplin, 1902. Public domain, unlike everything else from the 90s.
+                name: 'ENTRTNR.MID', bpm: 88, beats: 12,
+                notes: [
+                    [48,0,1,1],[43,1,1,1],[48,2,1,1],[43,3,1,1],[48,4,1,1],[43,5,1,1],
+                    [48,6,1,1],[43,7,1,1],[36,8,1,1],[43,9,1,1],[48,10,1,1],[43,11,1,1],
+                    [74,0,.5,0],[75,.5,.5,0],[76,1,.5,0],[84,1.5,.5,0],[76,2,.5,0],[84,2.5,.5,0],[76,3,.5,0],[84,3.5,1.5,0],
+                    [84,5,.5,0],[86,5.5,.5,0],[87,6,.5,0],[88,6.5,.5,0],[84,7,.5,0],[86,7.5,.5,0],[88,8,1,0],
+                    [83,9,.5,0],[86,9.5,.5,0],[84,10,1.5,0]
+                ]
+            },
+            {
+                // Maple Leaf Rag (1899), transposed and squashed into a chiptune
+                name: 'MAPLELF.MID', bpm: 92, beats: 8,
+                notes: [
+                    [36,0,1,1],[43,1,1,1],[36,2,1,1],[43,3,1,1],[41,4,1,1],[48,5,1,1],[43,6,1,1],[48,7,1,1],
+                    [76,0,.25,0],[72,.25,.25,0],[69,.5,.5,0],[76,1,.25,0],[72,1.25,.25,0],[69,1.5,.5,0],
+                    [76,2,.25,0],[72,2.25,.25,0],[69,2.5,.25,0],[72,2.75,.25,0],[69,3,.25,0],[64,3.25,.25,0],[60,3.5,.5,0],
+                    [68,4,.5,0],[69,4.5,.5,0],[72,5,.5,0],[76,5.5,.5,0],[72,6,.5,0],[69,6.5,.5,0],[72,7,1,0]
+                ]
+            },
+            {
+                // Original ragtime in the Joplin manner - the third Joplin is a tribute act
+                name: 'RAGTIME9.MID', bpm: 96, beats: 16,
+                notes: [
+                    [36,0,1,1],[43,1,1,1],[36,2,1,1],[43,3,1,1],
+                    [41,4,1,1],[48,5,1,1],[41,6,1,1],[48,7,1,1],
+                    [43,8,1,1],[50,9,1,1],[43,10,1,1],[50,11,1,1],
+                    [36,12,1,1],[43,13,1,1],[36,14,1,1],[43,15,1,1],
+                    [72,0,.5,0],[76,.5,.5,0],[79,1,.25,0],[76,1.25,.25,0],[72,1.5,.5,0],[74,2,.5,0],[71,2.5,.5,0],[67,3,1,0],
+                    [77,4,.5,0],[81,4.5,.5,0],[84,5,.25,0],[81,5.25,.25,0],[77,5.5,.5,0],[79,6,.5,0],[76,6.5,.5,0],[72,7,1,0],
+                    [79,8,.5,0],[83,8.5,.5,0],[86,9,.25,0],[83,9.25,.25,0],[79,9.5,.5,0],[81,10,.5,0],[77,10.5,.5,0],[74,11,1,0],
+                    [72,12,.5,0],[76,12.5,.5,0],[79,13,.5,0],[84,13.5,.5,0],[88,14,.5,0],[84,14.5,.5,0],[79,15,1,0]
+                ]
+            },
+            {
+                // drums: 36 kick / 38 snare / 42 hat / 46 open hat (channel 2)
+                name: 'BOOMBAP.MID', bpm: 92, beats: 8,
+                notes: [
+                    [36,0,.25,2],[36,2.5,.25,2],[36,4,.25,2],[36,6.5,.25,2],
+                    [38,1,.25,2],[38,3,.25,2],[38,5,.25,2],[38,7,.25,2],
+                    [42,0,.25,2],[42,.5,.25,2],[42,1,.25,2],[42,1.5,.25,2],[42,2,.25,2],[42,2.5,.25,2],[42,3,.25,2],[46,3.5,.25,2],
+                    [42,4,.25,2],[42,4.5,.25,2],[42,5,.25,2],[42,5.5,.25,2],[42,6,.25,2],[42,6.5,.25,2],[42,7,.25,2],[46,7.5,.25,2],
+                    [40,0,.75,1],[43,1.5,.5,1],[45,2,.75,1],[43,3,.5,1],[40,4,.75,1],[38,5.5,.5,1],[40,6,1.5,1],
+                    [76,2.5,.5,0],[74,3,.5,0],[71,3.5,1,0],[76,6.5,.5,0],[79,7,.5,0]
+                ]
+            },
+            {
+                name: 'GFUNK.MID', bpm: 94, beats: 16,
+                notes: [
+                    [36,0,.25,2],[36,2.75,.25,2],[36,4,.25,2],[36,6.75,.25,2],[36,8,.25,2],[36,10.75,.25,2],[36,12,.25,2],[36,14.75,.25,2],
+                    [38,1,.25,2],[38,3,.25,2],[38,5,.25,2],[38,7,.25,2],[38,9,.25,2],[38,11,.25,2],[38,13,.25,2],[38,15,.25,2],
+                    [42,.5,.25,2],[42,1.5,.25,2],[42,2.5,.25,2],[42,3.5,.25,2],[42,4.5,.25,2],[42,5.5,.25,2],[42,6.5,.25,2],[46,7.5,.25,2],
+                    [42,8.5,.25,2],[42,9.5,.25,2],[42,10.5,.25,2],[42,11.5,.25,2],[42,12.5,.25,2],[42,13.5,.25,2],[42,14.5,.25,2],[46,15.5,.25,2],
+                    [43,0,.5,1],[43,.75,.25,1],[46,1.5,.5,1],[43,2,.5,1],[41,3,.5,1],[43,3.5,.5,1],
+                    [43,4,.5,1],[43,4.75,.25,1],[46,5.5,.5,1],[43,6,.5,1],[41,7,.5,1],[39,7.5,.5,1],
+                    [43,8,.5,1],[43,8.75,.25,1],[46,9.5,.5,1],[43,10,.5,1],[41,11,.5,1],[43,11.5,.5,1],
+                    [43,12,.5,1],[46,13,.5,1],[48,13.5,.5,1],[46,14,.5,1],[43,14.5,.5,1],[38,15,1,1],
+                    [86,0,3,0],[84,3,1,0],[81,4,3,0],[79,7,1,0],[86,8,3,0],[84,11,1,0],[88,12,2,0],[86,14,2,0]
+                ]
+            },
+            {
+                name: 'PHATBEAT.MID', bpm: 100, beats: 8,
+                notes: [
+                    [36,0,.25,2],[36,1.75,.25,2],[36,4,.25,2],[36,5.75,.25,2],
+                    [38,2,.25,2],[38,6,.25,2],
+                    [42,0,.25,2],[42,.5,.25,2],[42,1,.25,2],[42,1.5,.25,2],[42,2,.25,2],[42,2.5,.25,2],[42,3,.25,2],[42,3.5,.25,2],
+                    [42,4,.25,2],[42,4.5,.25,2],[42,5,.25,2],[42,5.5,.25,2],[42,6,.25,2],[42,6.5,.25,2],[42,7,.25,2],[46,7.5,.25,2],
+                    [36,0,.75,1],[39,1,.5,1],[41,1.5,.5,1],[36,2,.75,1],[43,3,.5,1],[41,3.5,.5,1],
+                    [36,4,.75,1],[39,5,.5,1],[41,5.5,.5,1],[48,6,.5,1],[46,6.5,.5,1],[43,7,.5,1],[39,7.5,.5,1],
+                    [72,1.5,.25,0],[75,1.75,.25,0],[79,2,.5,0],[72,5.5,.25,0],[75,5.75,.25,0],[77,6,.5,0]
+                ]
+            },
+            {
+                name: 'JAZZHOP.MID', bpm: 85, beats: 8,
+                notes: [
+                    [36,0,.25,2],[36,2.5,.25,2],[36,4,.25,2],[36,6.5,.25,2],
+                    [38,1,.25,2],[38,3,.25,2],[38,5,.25,2],[38,7,.25,2],
+                    [42,.5,.25,2],[42,1.5,.25,2],[42,2.5,.25,2],[42,3.5,.25,2],[42,4.5,.25,2],[42,5.5,.25,2],[42,6.5,.25,2],[42,7.5,.25,2],
+                    [38,0,1,1],[45,1,1,1],[41,2,1,1],[43,3,1,1],[36,4,1,1],[43,5,1,1],[41,6,1,1],[43,7,1,1],
+                    [77,0,1.5,0],[76,2,1,0],[74,3,.5,0],[72,4,1.5,0],[71,6,1,0],[72,7,1,0]
+                ]
             }
         ];
 
@@ -1413,7 +1609,38 @@ Rebooting in American...</div>
         const midiLcd = document.getElementById('midi-lcd');
         const midiBtn = document.getElementById('midi-toggle');
 
+        let midiNoiseBuf = null;
+        function midiDrum(t0, type) {
+            if (type === 36) { // kick: sine pitch drop
+                const o = midiCtx.createOscillator(), g = midiCtx.createGain();
+                o.type = 'sine';
+                o.frequency.setValueAtTime(150, t0);
+                o.frequency.exponentialRampToValueAtTime(42, t0 + 0.12);
+                g.gain.setValueAtTime(0.5, t0);
+                g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.16);
+                o.connect(g); g.connect(midiMaster);
+                o.start(t0); o.stop(t0 + 0.18);
+                return;
+            }
+            // snare (38) and hats (42 closed / 46 open): filtered noise
+            if (!midiNoiseBuf) {
+                midiNoiseBuf = midiCtx.createBuffer(1, midiCtx.sampleRate / 2, midiCtx.sampleRate);
+                const d = midiNoiseBuf.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            }
+            const src = midiCtx.createBufferSource(), f = midiCtx.createBiquadFilter(), g = midiCtx.createGain();
+            src.buffer = midiNoiseBuf;
+            const dur = type === 38 ? 0.14 : (type === 46 ? 0.25 : 0.05);
+            f.type = type === 38 ? 'bandpass' : 'highpass';
+            f.frequency.value = type === 38 ? 1800 : 6500;
+            g.gain.setValueAtTime(type === 38 ? 0.28 : 0.1, t0);
+            g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+            src.connect(f); f.connect(g); g.connect(midiMaster);
+            src.start(t0); src.stop(t0 + dur + 0.02);
+        }
+
         function midiNoteOn(t0, note, dur, ch) {
+            if (ch === 2) return midiDrum(t0, note);
             const osc = midiCtx.createOscillator();
             const g = midiCtx.createGain();
             const vol = ch === 1 ? 0.11 : 0.05;
@@ -1450,7 +1677,7 @@ Rebooting in American...</div>
             midiScheduleLoop(MIDI_TRACKS[midiTrack], midiCtx.currentTime + 0.1);
             midiPlaying = true;
             midiBtn.textContent = '■ MIDI: ON';
-            midiLcd.textContent = '♪ ' + MIDI_TRACKS[midiTrack].name;
+            midiLcd.textContent = '♪ ' + (midiTrack + 1) + '/' + MIDI_TRACKS.length + ' ' + MIDI_TRACKS[midiTrack].name;
         }
 
         function midiStop() {
@@ -1466,7 +1693,7 @@ Rebooting in American...</div>
         function midiNext() {
             midiTrack = (midiTrack + 1) % MIDI_TRACKS.length;
             if (midiPlaying) { midiStop(); midiStart(); }
-            else midiLcd.textContent = 'CUED: ' + MIDI_TRACKS[midiTrack].name;
+            else midiLcd.textContent = 'CUED ' + (midiTrack + 1) + '/' + MIDI_TRACKS.length + ': ' + MIDI_TRACKS[midiTrack].name;
         }
 
         // ===== Clippy language switch: a localisation incident =====
@@ -1613,7 +1840,7 @@ Rebooting in American...</div>
             const llamas = [];
             const shots = [];
 
-            function spawnLlama(speed, size) {
+            function spawnLlama(speed, size, px, py) {
                 const el = document.createElement('canvas');
                 el.className = 'llama-sprite';
                 el.width = template.width;
@@ -1622,15 +1849,21 @@ Rebooting in American...</div>
                 el.style.width = Math.round(BASE_W * size) + 'px';
                 el.style.height = Math.round(BASE_H * size) + 'px';
                 document.body.appendChild(el);
+                const w = BASE_W * size, h = BASE_H * size;
                 const ang = Math.random() * Math.PI * 2;
                 // steer away from near-vertical/horizontal drift
                 const vx = Math.max(0.35, Math.abs(Math.cos(ang))) * speed * Math.sign(Math.cos(ang) || 1);
                 const vy = Math.max(0.35, Math.abs(Math.sin(ang))) * speed * Math.sign(Math.sin(ang) || 1);
                 const l = {
                     el, speed, size,
-                    w: BASE_W * size, h: BASE_H * size,
-                    x: Math.random() * Math.max(1, innerWidth - BASE_W * size),
-                    y: Math.random() * Math.max(1, innerHeight - BASE_H * size),
+                    w, h,
+                    // spawn centred on the given point (clamped on-screen), else random
+                    x: px !== undefined
+                        ? Math.min(Math.max(0, px - w / 2), Math.max(0, innerWidth - w))
+                        : Math.random() * Math.max(1, innerWidth - w),
+                    y: py !== undefined
+                        ? Math.min(Math.max(0, py - h / 2), Math.max(0, innerHeight - h))
+                        : Math.random() * Math.max(1, innerHeight - h),
                     vx, vy,
                     type: ['burger', 'coke', 'exploder'][Math.floor(Math.random() * 3)],
                     cooldown: 2 + Math.random() * 3
@@ -1656,9 +1889,29 @@ Rebooting in American...</div>
                     el: s,
                     x: l.x + (dir < 0 ? 0 : l.w),
                     y: l.y + l.h * 0.35,
-                    vx: dir * 260,
+                    vx: dir * 320,
                     vy: (Math.random() - 0.5) * 80
                 });
+                sfxShot(l.type);
+            }
+
+            function spawnDebris(x, y, reach) {
+                const s = document.createElement('span');
+                s.className = 'sparkle';
+                const glyphs = ['■', '■', '▲', '✦', '✨', '🔥', '·'];
+                s.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+                s.style.color = ['#ffe14d', '#ff5500', '#ff00ff', '#00ffff', '#ffffff'][Math.floor(Math.random() * 5)];
+                s.style.fontSize = (6 + Math.random() * 14) + 'px';
+                const ang = Math.random() * Math.PI * 2;
+                const dist = reach * (0.25 + Math.random() * 0.75);
+                const life = 0.7 + Math.random() * 0.8;
+                s.style.setProperty('--tx', Math.cos(ang) * dist + 'px');
+                s.style.setProperty('--ty', Math.sin(ang) * dist + 'px');
+                s.style.setProperty('--rot', Math.round((Math.random() - 0.5) * 1440) + 'deg');
+                s.style.setProperty('--life', life + 's');
+                s.style.translate = x + 'px ' + y + 'px';
+                document.body.appendChild(s);
+                setTimeout(() => s.remove(), life * 1000 + 100);
             }
 
             function explodeLlama(l) {
@@ -1666,14 +1919,35 @@ Rebooting in American...</div>
                 if (i === -1) return;
                 llamas.splice(i, 1);
                 l.el.remove();
+                const cx = l.x + l.w / 2, cy = l.y + l.h / 2;
+                sfxExplode();
+                // the classic emoji boom, now merely the centrepiece
                 const boom = document.createElement('span');
                 boom.className = 'llama-boom';
                 boom.textContent = '💥';
-                boom.style.fontSize = Math.round(34 * l.size) + 'px';
+                boom.style.fontSize = Math.round(48 * l.size) + 'px';
                 boom.style.left = l.x + 'px';
                 boom.style.top = l.y + 'px';
                 document.body.appendChild(boom);
                 setTimeout(() => boom.remove(), 750);
+                // white flash
+                const flash = document.createElement('div');
+                flash.className = 'boom-flash';
+                document.body.appendChild(flash);
+                setTimeout(() => flash.remove(), 300);
+                // shockwave ring
+                const ring = document.createElement('div');
+                ring.className = 'boom-ring';
+                ring.style.left = cx + 'px';
+                ring.style.top = cy + 'px';
+                document.body.appendChild(ring);
+                setTimeout(() => ring.remove(), 700);
+                // debris to every corner of the screen, Llamatron-style
+                const reach = Math.max(innerWidth, innerHeight);
+                for (let j = 0; j < 40; j++) spawnDebris(cx, cy, reach);
+                // screen shake
+                document.body.classList.add('shaking');
+                setTimeout(() => document.body.classList.remove('shaking'), 450);
             }
 
             // Click a llama to breed: the offspring is 2% faster and either
@@ -1686,7 +1960,7 @@ Rebooting in American...</div>
                     if (e.clientX >= l.x - slop && e.clientX <= l.x + l.w + slop &&
                         e.clientY >= l.y - slop && e.clientY <= l.y + l.h + slop) {
                         if (llamas.length < MAX_LLAMAS) {
-                            spawnLlama(l.speed * 1.02, l.size * (Math.random() < 0.5 ? 1.05 : 0.95));
+                            spawnLlama(l.speed * 1.02, l.size * (Math.random() < 0.5 ? 1.05 : 0.95), e.clientX, e.clientY);
                         }
                         break;
                     }
