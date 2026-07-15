@@ -34,6 +34,9 @@
             color: #ffffff;
             overflow-x: hidden;
             min-height: 100vh;
+            /* text selection interferes with the llama interactive zoo playground */
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .comic-sans { font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; }
@@ -724,6 +727,24 @@
             from { transform: scale(0.6); opacity: 1; }
             to   { transform: scale(2.4); opacity: 0; }
         }
+        .ink-spot {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--w, 4px);
+            height: var(--w, 4px);
+            background: #000000;
+            z-index: 46;
+            pointer-events: none;
+            animation: ink-life var(--life, 2.5s) linear forwards;
+        }
+        @keyframes ink-life {
+            0%   { transform: translate(0, 0); opacity: 1; height: var(--w, 4px); }
+            12%  { transform: translate(var(--tx, 0px), var(--ty, 0px)); height: var(--w, 4px); }
+            55%  { transform: translate(var(--tx, 0px), var(--ty, 0px)); height: calc(var(--w, 4px) * 7); opacity: 0.9; }
+            100% { transform: translate(var(--tx, 0px), calc(var(--ty, 0px) + 50px)); height: calc(var(--w, 4px) * 4); opacity: 0; }
+        }
+
         .boom-flash {
             position: fixed;
             inset: 0;
@@ -1281,6 +1302,7 @@ Rebooting in American...</div>
             <span title="Not tested on animals" onclick="showModal('NOT TESTED ON ANIMALS.\n\nExcept one llama. The llama is fine. The llama is thriving. You may have seen him around.')">🐾</span>
             <span title="Y2K Compliant" onclick="showModal('Y2K COMPLIANT!\n\nThis site is fully prepared for the year 2000, whenever it arrives.')">🕰️</span>
             <span title="Winner: Best New Warez Site 1997 (self-awarded)" onclick="showModal('WINNER: BEST NEW WAREZ SITE 1997!\n\n(Self-awarded. The trophy is a clip-art JPEG.)')">🏆</span>
+            <span title="IE 5.5 Non-compliant" onclick="showModal('THIS SITE IS PROUDLY IE 5.5 NON-COMPLIANT.\n\nIf the page renders correctly in Internet Explorer 5.5, that is a bug. Please report it to nobody.')">🚫</span>
         </div>
 
         <div class="hit-counter-box">
@@ -1919,20 +1941,32 @@ Rebooting in American...</div>
             const BASE_W = (cols + 1) * SCALE, BASE_H = (rows + 1) * SCALE;
             const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            // Draw the sprite once; every llama copies this bitmap.
-            const template = document.createElement('canvas');
-            template.width = cols + 1;   // +1 leaves room for the drop shadow
-            template.height = rows + 1;
-            const tctx = template.getContext('2d');
-            // Black offset silhouette first, then pure red on top —
-            // hue-rotate spins the red through the whole rainbow, black stays black.
-            for (const [color, off] of [['#000000', 1], ['#ff0000', 0]]) {
-                tctx.fillStyle = color;
-                SPRITE.forEach((row, y) => {
-                    [...row].forEach((px, x) => {
-                        if (px === 'O') tctx.fillRect(x + off, y + off, 1, 1);
+            // Every llama gets its own sprite because every llama gets its own
+            // neck. The base neck is ~4 rows; extension rows are spliced in
+            // between the head and the shoulders.
+            const NECK_ROW = '....OOO...............';
+            function buildLlamaCanvas(neckScale) {
+                const extra = Math.round((neckScale - 1) * 4);
+                const spriteRows = [
+                    ...SPRITE.slice(0, 6),
+                    ...Array(extra).fill(NECK_ROW),
+                    ...SPRITE.slice(6)
+                ];
+                const c = document.createElement('canvas');
+                c.width = cols + 1;   // +1 leaves room for the drop shadow
+                c.height = spriteRows.length + 1;
+                const cctx = c.getContext('2d');
+                // Black offset silhouette first, then pure red on top —
+                // hue-rotate spins the red through the whole rainbow, black stays black.
+                for (const [color, off] of [['#000000', 1], ['#ff0000', 0]]) {
+                    cctx.fillStyle = color;
+                    spriteRows.forEach((row, y) => {
+                        [...row].forEach((px, x) => {
+                            if (px === 'O') cctx.fillRect(x + off, y + off, 1, 1);
+                        });
                     });
-                });
+                }
+                return c;
             }
 
             const AMMO = { burger: '🍔', coke: '🥤' };
@@ -1940,18 +1974,16 @@ Rebooting in American...</div>
             const shots = [];
 
             function spawnLlama(speed, size, px, py) {
-                const el = document.createElement('canvas');
+                const neckScale = 1 + Math.random() * 7; // neck length: 1x to 8x
+                const el = buildLlamaCanvas(neckScale);
                 el.className = 'llama-sprite';
-                el.width = template.width;
-                el.height = template.height;
-                el.getContext('2d').drawImage(template, 0, 0);
-                el.style.width = Math.round(BASE_W * size) + 'px';
-                el.style.height = Math.round(BASE_H * size) + 'px';
+                const w = el.width * SCALE * size, h = el.height * SCALE * size;
+                el.style.width = Math.round(w) + 'px';
+                el.style.height = Math.round(h) + 'px';
                 // some llamas roam in front of the windows, most stay behind
                 const front = Math.random() < 0.35;
                 el.style.zIndex = front ? 45 : -1;
                 document.body.appendChild(el);
-                const w = BASE_W * size, h = BASE_H * size;
                 const ang = Math.random() * Math.PI * 2;
                 // steer away from near-vertical/horizontal drift
                 const vx = Math.max(0.35, Math.abs(Math.cos(ang))) * speed * Math.sign(Math.cos(ang) || 1);
@@ -1968,7 +2000,11 @@ Rebooting in American...</div>
                         : Math.random() * Math.max(1, innerHeight - h),
                     vx, vy,
                     type: ['burger', 'coke', 'exploder'][Math.floor(Math.random() * 3)],
-                    cooldown: 2 + Math.random() * 3
+                    cooldown: 2 + Math.random() * 3,
+                    // 10% are catherine wheels: they spin and spray dripping ink
+                    wheel: !reduced && Math.random() < 0.1,
+                    spin: 0,
+                    inkCd: 0
                 };
                 llamas.push(l);
                 placeLlama(l);
@@ -1977,7 +2013,27 @@ Rebooting in American...</div>
 
             function placeLlama(l) {
                 // sprite faces left; flip to face the direction of travel
-                l.el.style.transform = 'translate(' + l.x + 'px,' + l.y + 'px) scaleX(' + (l.vx < 0 ? 1 : -1) + ')';
+                l.el.style.transform = 'translate(' + l.x + 'px,' + l.y + 'px) scaleX(' + (l.vx < 0 ? 1 : -1) + ')'
+                    + (l.wheel ? ' rotate(' + Math.round(l.spin) + 'deg)' : '');
+            }
+
+            let inkCount = 0;
+            function spawnInk(x, y) {
+                if (inkCount > 150) return; // don't drown the page
+                inkCount++;
+                const s = document.createElement('span');
+                s.className = 'ink-spot';
+                const wpx = 3 + Math.random() * 4;
+                const ang = Math.random() * Math.PI * 2;
+                const dist = 60 + Math.random() * 220;
+                const life = 2 + Math.random() * 1.5;
+                s.style.setProperty('--w', wpx.toFixed(1) + 'px');
+                s.style.setProperty('--tx', Math.cos(ang) * dist + 'px');
+                s.style.setProperty('--ty', Math.sin(ang) * dist + 'px');
+                s.style.setProperty('--life', life + 's');
+                s.style.translate = x + 'px ' + y + 'px';
+                document.body.appendChild(s);
+                setTimeout(() => { s.remove(); inkCount--; }, life * 1000 + 100);
             }
 
             function fireShot(l) {
@@ -1990,7 +2046,7 @@ Rebooting in American...</div>
                 shots.push({
                     el: s,
                     x: l.x + (dir < 0 ? 0 : l.w),
-                    y: l.y + l.h * 0.35,
+                    y: l.y + l.h * 0.12, // from the head, wherever the neck put it
                     vx: dir * 320,
                     vy: (Math.random() - 0.5) * 80
                 });
@@ -2109,6 +2165,14 @@ Rebooting in American...</div>
                     else if (l.x >= maxX) { l.x = maxX; l.vx = -Math.abs(l.vx); }
                     if (l.y <= 0) { l.y = 0; l.vy = Math.abs(l.vy); }
                     else if (l.y >= maxY) { l.y = maxY; l.vy = -Math.abs(l.vy); }
+                    if (l.wheel) {
+                        l.spin = (l.spin + 540 * dt) % 360;
+                        l.inkCd -= dt;
+                        if (l.inkCd <= 0) {
+                            spawnInk(l.x + l.w / 2, l.y + l.h / 2);
+                            l.inkCd = 0.08;
+                        }
+                    }
                     placeLlama(l);
                     if (l.type !== 'exploder') {
                         l.cooldown -= dt;
