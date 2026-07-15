@@ -20,7 +20,10 @@
         html {
             -webkit-text-size-adjust: 100%;
             /* full-bleed worms, giant compositions and screen-wide shockwaves
-               must never hand mobile browsers a horizontal scrollbar */
+               must never hand mobile browsers a horizontal scrollbar. clip on
+               BOTH html and body, because whichever is the scroll container on
+               a given mobile browser must have its x-overflow sealed. */
+            max-width: 100%;
             overflow-x: hidden;
             overflow-x: clip;
         }
@@ -38,7 +41,11 @@
             background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
             font-family: 'Times New Roman', Times, serif;
             color: #ffffff;
+            position: relative; /* clip containment for the bleeding decorations */
+            width: 100%;
+            max-width: 100%;
             overflow-x: hidden;
+            overflow-x: clip;
             min-height: 100vh;
             /* text selection interferes with the llama interactive zoo playground */
             -webkit-user-select: none;
@@ -556,6 +563,22 @@
             .assistant .paperclip { font-size: 2.4rem; }
             .speech-bubble { font-size: 0.75rem; }
         }
+        /* On phones the paperclip sat on top of the bottom-right content;
+           move it to the bottom centre, clear of the MIDI deck (bottom-left). */
+        @media (max-width: 640px) {
+            .assistant {
+                right: 50%;
+                bottom: 12px;
+                transform: translateX(50%);
+                animation: none; /* the float would fight the centring transform */
+            }
+            .assistant .paperclip { text-align: center; }
+            .speech-bubble {
+                right: 50%;
+                transform: translateX(50%);
+            }
+            .speech-bubble:after { right: 50%; transform: translateX(50%); }
+        }
 
         /* ============ FOOTER ============ */
         footer {
@@ -603,6 +626,46 @@
         .webring a { color: #00ffff; }
 
         .copyright { font-size: 0.7rem; color: #777; margin-top: 2rem; font-family: 'Courier New', monospace; line-height: 1.6; }
+
+        /* Art Gallery: the way back to the real portfolio, in both eras */
+        .art-gallery {
+            display: inline-block;
+            margin-top: 1.75rem;
+            text-decoration: none;
+        }
+        .art-gallery .ag-then {
+            display: inline-block;
+            background: #ffdd00;
+            color: #aa0000;
+            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 8px 18px;
+            border: 3px outset #ffe14d;
+            box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+        }
+        .art-gallery:hover .ag-then { background: #fff04d; }
+        .art-gallery .ag-now { display: none; }
+        /* in 2026 it becomes a filled, letterspaced button like now-visit */
+        body.now .art-gallery { margin-top: 8vh; }
+        body.now .art-gallery .ag-then { display: none; }
+        body.now .art-gallery .ag-now {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7em;
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #000000;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 700;
+            font-size: 0.82rem;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            padding: 0.95rem 2.2rem;
+        }
+        body.now .art-gallery .ag-now .arr { transition: transform 0.2s; }
+        body.now .art-gallery:hover .ag-now { background: #ffffff; color: #000000; }
+        body.now .art-gallery:hover .ag-now .arr { transform: translateX(5px); }
 
         /* ============ MODAL ============ */
         #custom-modal {
@@ -1010,13 +1073,16 @@
 
         body.now .matrix-meme,
         body.now .marquee-bar, body.now .hazard-tape, body.now .tagline,
-        body.now .construction, body.now .midi-deck, body.now .assistant,
+        body.now .construction, body.now .assistant,
         body.now .win95-header, body.now .app-footer, body.now .app-link,
         body.now .pitch-quote, body.now .retro-table, body.now .scroll-panel,
         body.now .dos-panel, body.now .testimonials, body.now .pig-live,
         body.now .subhead, body.now .boxed-copy, body.now .dl-header .ver,
         body.now .app-titlebar .spin-3d, body.now .app-titlebar .fine-print,
         body.now .badge-row, body.now .hit-counter-box, body.now .webring { display: none; }
+        /* MIDI stays in 2026 on mobile — the music shouldn't vanish on a phone;
+           on desktop, 2026 is silent-minimal, so hide it there. */
+        @media (min-width: 641px) { body.now .midi-deck { display: none; } }
 
         .now-tagline { display: none; }
         body.now .now-tagline {
@@ -1165,6 +1231,28 @@
             text-decoration: none;
         }
         body.now .now-get:hover { background: #000000; color: #ffffff; }
+        /* now-visit: the buttons that actually go somewhere. Filled, not
+           outlined, so a real destination reads differently from the jokes. */
+        .now-visit { display: none; }
+        body.now .now-visit {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7em;
+            margin-top: 4.5vh;
+            padding: 0.95rem 2.2rem;
+            border: 2px solid #000000;
+            background: #000000;
+            color: #ffffff;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 700;
+            font-size: 0.82rem;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            text-decoration: none;
+        }
+        body.now .now-visit .arr { transition: transform 0.2s; }
+        body.now .now-visit:hover { background: #ffffff; color: #000000; }
+        body.now .now-visit:hover .arr { transform: translateX(5px); }
         /* the consent experience: there is nothing to consent to,
            and it will do anything to make you agree to it */
         .now-consent { display: none; }
@@ -1390,6 +1478,25 @@
             /* 2026 furniture on a small screen */
             .now-consent { max-width: 92vw; }
             body.now .now-rail { display: none; }
+            /* the exotic 2026 per-app layouts (off-axis, huge side margins,
+               right-flush) overflow a phone; flatten them to a simple column */
+            body.now main { padding: 8vh 4vw 14vh; gap: 22vh; }
+            body.now header { padding: 16vh 4vw 8vh; }
+            body.now footer { padding: 8vh 4vw 16vh; }
+            body.now main > .ants:nth-of-type(2) .app-body,
+            body.now main > .ants:nth-of-type(3) .app-body,
+            body.now main > .ants:nth-of-type(4) .app-body {
+                margin-left: 0;
+                transform: none;
+                text-align: left;
+            }
+            body.now main > .ants:nth-of-type(2) .dl-header,
+            body.now main > .ants:nth-of-type(3) .dl-header { justify-content: flex-start; float: none; margin: 0; }
+            body.now main > .ants:nth-of-type(3) .dl-header h2 { writing-mode: horizontal-tb; transform: none; }
+            body.now main > .ants:nth-of-type(2) .now-visit { margin-left: 0; }
+            body.now .now-index { font-size: clamp(4rem, 22vw, 8rem); }
+            body.now .app-titlebar h2, body.now .dl-header h2 { font-size: clamp(2.6rem, 13vw, 5rem); }
+            body.now .wordart { font-size: clamp(3.4rem, 18vw, 7rem); }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1496,7 +1603,9 @@
                         <text x="168" y="64">unsunkwords.com</text>
                     </svg>
                 </a>
-                <a class="now-get" href="#" onclick="showModal('Installed.\n\nIt was always installed.'); return false;">get — still free</a>
+                <a class="now-visit" href="https://unsunkwords.com/" target="_blank" rel="noopener">
+                    open unsunkwords.com <span class="arr">&rarr;</span>
+                </a>
 
                 <p class="pitch-quote">
                     "Synergising lexical retrieval through non-linear vertical spatial grids to disrupt the cognitive stagnation landscape."
@@ -1666,7 +1775,7 @@
             <div class="app-body">
                 <span class="now-index">03</span>
                 <div class="dl-header">
-                    <h2>gignite.live</h2>
+                    <h2><a href="https://gignite.live/" target="_blank" rel="noopener" style="color:inherit; text-decoration:none;">gignite.live</a></h2>
                     <div class="ver">
                         <span class="icon spin-3d">🎸</span>
                         v 1.2.4
@@ -1683,7 +1792,9 @@
                         <text x="168" y="64">gignite.live</text>
                     </svg>
                 </a>
-                <a class="now-get" href="#" onclick="showModal('Tour booked.\n\nThe van remains a van.'); return false;">book the van</a>
+                <a class="now-visit" href="https://gignite.live/" target="_blank" rel="noopener">
+                    open gignite.live <span class="arr">&rarr;</span>
+                </a>
 
                 <h3 class="subhead comic-sans" style="margin-top:1rem;">
                     Organising the Unorganisable 🚐
@@ -1986,6 +2097,11 @@ Rebooting in American...</div>
             <strong>1984DRUM WEBRING</strong> |
             <a href="#" onclick="showModal('The next site in the webring is now a casino.'); return false;">NEXT</a> &gt;&gt;
         </p>
+
+        <a class="art-gallery" href="https://1984drum.com/" target="_blank" rel="noopener">
+            <span class="ag-then">🖼️ visit the Art Gallery &mdash; 1984drum.com</span>
+            <span class="ag-now">art gallery <span class="arr">&rarr;</span></span>
+        </a>
 
         <p class="copyright">
             © 1999-2026 1984drum Shareware Solutions Inc. All rights reserved locally.<br>
@@ -3726,6 +3842,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         }
 
         // ===== Intro: under construction (5s, click to skip) -> warp speed (~3s) -> page =====
+        // Always open at the very top: stop the browser restoring a prior
+        // scroll position (which was landing visitors mid-page).
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        window.scrollTo(0, 0);
+        addEventListener('load', () => window.scrollTo(0, 0));
+
         (function () {
             const intro = document.getElementById('intro');
             const construction = document.getElementById('intro-construction');
@@ -3739,6 +3861,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 done = true;
                 if (raf) cancelAnimationFrame(raf);
                 document.body.style.overflow = '';
+                window.scrollTo(0, 0); // the reveal always starts at the top
                 intro.style.opacity = '0';
                 setTimeout(() => intro.remove(), 650);
             }
