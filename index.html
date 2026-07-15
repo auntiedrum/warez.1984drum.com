@@ -871,6 +871,21 @@
             animation: none;
             border-radius: 0; /* crisp era: no soft corners */
         }
+        /* ============ MATRIX MEME ============ */
+        /* 20x20 of pure cinema. Hovering feeds it; it does not know how to stop. */
+        .matrix-meme {
+            display: block;
+            width: 20px;
+            height: 20px;
+            margin: 0 auto 2px auto;
+            background: #000000;
+            image-rendering: pixelated;
+            transform-origin: center;
+            position: relative;
+            z-index: 800;
+        }
+
+        body.now .matrix-meme,
         body.now .marquee-bar, body.now .hazard-tape, body.now .tagline,
         body.now .construction, body.now .midi-deck, body.now .assistant,
         body.now .win95-header, body.now .app-footer, body.now .app-link,
@@ -1027,6 +1042,38 @@
             text-decoration: none;
         }
         body.now .now-get:hover { background: #000000; color: #ffffff; }
+        /* the consent experience: there is nothing to consent to */
+        .now-consent { display: none; }
+        body.now .now-consent {
+            display: flex;
+            align-items: center;
+            gap: 1.1rem;
+            position: fixed;
+            bottom: 2.2vh;
+            left: 1.2vw;
+            z-index: 70;
+            background: #ffffff;
+            border: 2px solid #000000;
+            padding: 0.65rem 1rem;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #000000;
+        }
+        .now-consent button {
+            border: none;
+            background: #000000;
+            color: #ffffff;
+            padding: 0.5rem 1.1rem;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+        }
+        .now-consent button:hover { background: #ffffff; color: #000000; outline: 2px solid #000000; }
         /* gradient worms: generated fresh on every visit to 2026 */
         .now-worm {
             position: absolute;
@@ -1094,7 +1141,11 @@
     <!-- NOW / THEN era toggle (desktop only) -->
     <button class="era-toggle" id="era-toggle" onclick="toggleEra()">✨ time travel to 2026</button>
     <canvas id="now-cursor"></canvas>
-    <p class="now-tagline now-rail">est. 1998 — minimal since tuesday</p>
+    <p class="now-tagline now-rail">minimal since tuesday</p>
+    <div class="now-consent">
+        <span id="consent-text">we use no cookies.</span>
+        <button id="consent-btn" onclick="consentMore()">accept</button>
+    </div>
 
     <!-- Intro: under construction, then warp speed. Click to skip. -->
     <div id="intro">
@@ -1116,7 +1167,7 @@
     <!-- Navbar / Marquee -->
     <div class="marquee-bar">
         <marquee scrollamount="8">
-            🔥 💾 WELCOME TO 1984DRUM SHAREWARE — 100% LEGIT, 0% VIRUSES (PROBABLY) 💾 🔥 >>> NO RATIO REQUIRED >>> ALL APPS CRACKED BY THE DEVELOPER HIMSELF (HE HAS THE PASSWORDS) >>> BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 AT 800x600 🚀 >>> NOW SERVING 4 (FOUR) APPS — DOUBLE THE WAREZ, SAME ZERO PRICE 💾
+            🔥 💾 WELCOME TO 1984DRUM SHAREWARE — 100% LEGIT, 0% VIRUSES (PROBABLY) 💾 🔥 >>> NO RATIO REQUIRED >>> ALL APPS CRACKED BY THE DEVELOPER HIMSELF (HE HAS THE PASSWORDS) >>> NOW WITH 40% MORE SYNERGY (BY VOLUME) >>> BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 AT 800x600 🚀 >>> NOW SERVING 4 (FOUR) APPS — DOUBLE THE WAREZ, SAME ZERO PRICE 💾
         </marquee>
     </div>
 
@@ -1132,7 +1183,7 @@
         <p class="construction">
             [ Under Construction Since 1998 ] <span class="rainbow-text">▓▒░ FREE D/L 4 ALL ░▒▓</span>
         </p>
-        <p class="now-tagline">software. curated. est. 1998.</p>
+        <p class="now-tagline">software. curated.</p>
     </header>
 
     <!-- Main Content -->
@@ -1151,12 +1202,14 @@
                 <div class="app-titlebar">
                     <h2>Quagmire</h2>
                     <div style="text-align:center;">
-                        <span class="spin-3d" style="font-size:2.2rem; display:block;">🌐</span>
+                        <canvas class="matrix-meme" id="matrix-meme" width="20" height="20"
+                                title="do not stare directly at the meme"
+                                onclick="matrixReset(); return false;"></canvas>
                         <a href="#" class="app-link" onclick="showModal('Navigating to unsunkwords.com... \n\nError 404: Synergy overload.'); return false;">unsunkwords.com</a>
                     </div>
                 </div>
 
-                <p class="now-tagline">words. reimagined.</p>
+                <p class="now-tagline">cowords.</p>
                 <a class="now-url" href="#" style="transform: rotate(-2deg);"
                    onclick="showModal('unsunkwords.com\n\nThe words are down there. Someone should get them.'); return false;">
                     <svg viewBox="0 0 470 104" xmlns="http://www.w3.org/2000/svg" aria-label="unsunkwords.com">
@@ -1247,7 +1300,7 @@
                     </div>
                 </div>
 
-                <p class="now-tagline">loudness. perfected.</p>
+                <p class="now-tagline">flatlined.</p>
                 <a class="now-url" href="#" style="transform: rotate(1.5deg);"
                    onclick="showModal('ursoundm8.ai\n\nThe .ai is silent. The rest is not.'); return false;">
                     <svg viewBox="0 0 470 104" xmlns="http://www.w3.org/2000/svg" aria-label="ursoundm8.ai">
@@ -1345,7 +1398,7 @@
                     </div>
                 </div>
 
-                <p class="now-tagline">touring. simplified.</p>
+                <p class="now-tagline">bandmin.</p>
                 <a class="now-url" href="#" style="transform: rotate(-1deg);"
                    onclick="showModal('gignite.live\n\nIt is, technically.'); return false;">
                     <svg viewBox="0 0 470 104" xmlns="http://www.w3.org/2000/svg" aria-label="gignite.live">
@@ -1468,7 +1521,7 @@
                     </div>
                 </div>
 
-                <p class="now-tagline">gravity. optional.</p>
+                <p class="now-tagline">unfloored.</p>
                 <a class="now-url" href="#" style="transform: rotate(2deg);"
                    onclick="showModal('ancient.pig\n\nNot a real domain. The pig predates DNS.'); return false;">
                     <svg viewBox="0 0 470 104" xmlns="http://www.w3.org/2000/svg" aria-label="ancient.pig">
@@ -1793,6 +1846,58 @@ Rebooting in American...</div>
             const assistant = bubble.parentElement;
             assistant.style.animation = 'none';
             setTimeout(() => { assistant.style.animation = 'float 4s ease-in-out infinite'; }, 10);
+        }
+
+        // ===== The Quagmire matrix meme: 20x20 of pure cinema =====
+        // Hover feeds it. It grows past the titlebar, past the window, past the
+        // screen, past reason. Clicking contains it. Temporarily.
+        const memeCv = document.getElementById('matrix-meme');
+        const memeCtx = memeCv.getContext('2d');
+        const MEME_CHARS = 'アイウエオカキクケコ01$#*+=';
+        const memeDrops = [0, 1, 2, 3].map(() => Math.random() * 20);
+        let memeScale = 1, memeHover = false;
+
+        memeCv.addEventListener('mouseenter', () => { memeHover = true; });
+        memeCv.addEventListener('mouseleave', () => { memeHover = false; });
+
+        function matrixReset() {
+            memeHover = false;
+            memeScale = 1;
+            memeCv.style.transform = '';
+            showModal('The meme has been contained.\n\nFor now.');
+        }
+
+        setInterval(() => {
+            // crude rain: fade everything a little, drop a few fresh glyphs
+            memeCtx.fillStyle = 'rgba(0,0,0,0.3)';
+            memeCtx.fillRect(0, 0, 20, 20);
+            memeCtx.font = '6px monospace';
+            for (let c = 0; c < 4; c++) {
+                memeCtx.fillStyle = Math.random() < 0.2 ? '#c8ffc8' : '#00ff41';
+                memeDrops[c] = (memeDrops[c] + 1.5) % 26;
+                memeCtx.fillText(
+                    MEME_CHARS[Math.floor(Math.random() * MEME_CHARS.length)],
+                    c * 5 + 1,
+                    memeDrops[c] - 3
+                );
+            }
+            if (memeHover) memeScale = Math.min(memeScale * 1.05, 400); // 8000px. and beyond.
+            else if (memeScale > 1) memeScale = Math.max(1, memeScale * 0.8);
+            memeCv.style.transform = memeScale > 1 ? 'scale(' + memeScale.toFixed(2) + ')' : '';
+        }, 70);
+
+        // ===== The consent experience =====
+        const CONSENT_STAGES = [
+            ['we use no cookies.', 'accept'],
+            ['we still use no cookies.', 'accept more'],
+            ['nothing has changed.', 'keep accepting'],
+            ['this banner is the product.', 'accept forever']
+        ];
+        let consentStage = 0;
+        function consentMore() {
+            consentStage = (consentStage + 1) % CONSENT_STAGES.length;
+            document.getElementById('consent-text').textContent = CONSENT_STAGES[consentStage][0];
+            document.getElementById('consent-btn').textContent = CONSENT_STAGES[consentStage][1];
         }
 
         // ===== Wand particle FX: a trail while you wave, a burst when you cast =====
@@ -2361,25 +2466,26 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         TEX(uv + unit.zy)-TEX(uv - unit.zy),
         gray*gray*gray));
 
-    // Lighting Model
-    // Backlight
-    vec3 colour = vec3(.3)*(1.-abs(dot(normal, vec3(0,0,1))));
+    // Invisible glass: the body of the water is fully transparent — only the
+    // tilted rim of the ripple catches light and shade, like a finger dragged
+    // through still water disturbing the reflection.
+    vec3 L = normalize(vec3(0.4, 0.6, 0.7));
+    float slope = clamp(length(normal.xy) * 1.7, 0.0, 1.0);  // rim of the ripple
+    float side = dot(normal, L);                             // lit side vs shade side
+    float spec = pow(max(side, 0.0), 20.0);                  // sun glints
 
-    // Specular light
-    vec3 dir = normalize(vec3(0,1,2));
-    float specular = pow(max(dot(normal, dir), 0.0), 5.0)*.5+5.0;
-    colour += vec3(.5)*ss(.2, 1., specular);
-
-    // Chromatic edge tint
-    vec3 tint = .5+.5*cos(vec3(1,2,3)*1.+dot(normal, dir)*4.-uv.y*3.-3.);
-    colour += tint * smoothstep(.15, .0, gray);
+    float mask = ss(0.004, 0.05, gray);
+    vec3 colour = mix(vec3(0.05), vec3(1.0), clamp(side * 0.5 + 0.5, 0., 1.));
+    vec3 tint = .5+.5*cos(vec3(1,2,3)+side*4.-uv.y*3.-3.);
+    colour += tint * slope * 0.12;                           // faint iridescence
+    colour += spec * 0.6;
 
     // Dither to prevent colour banding
-    colour -= dither.x*.1;
+    colour -= dither.x*.06;
     colour = clamp(colour, 0., 1.);
 
-    // The paint mask is the alpha: ink over the page, page back as it fades
-    float alpha = ss(0.01, 0.1, gray) * 0.92;
+    // Alpha lives only on the moving rim; flat water is invisible
+    float alpha = min(mask * (slope * 0.42 + spec * 0.30), 0.8);
 
     // Crisp cursor dot: fixed pixel radius, hard edge, no pulse.
     // iResolution.z carries the devicePixelRatio.
