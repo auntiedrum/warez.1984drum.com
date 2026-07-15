@@ -727,6 +727,45 @@
             from { transform: scale(0.6); opacity: 1; }
             to   { transform: scale(2.4); opacity: 0; }
         }
+        /* ============ ASTEROIDS ============ */
+        .roid {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: -1;
+            pointer-events: none;
+            image-rendering: pixelated;
+        }
+        .roid-digest {
+            animation: roid-cycle 0.35s linear infinite;
+        }
+        @keyframes roid-cycle {
+            from { filter: sepia(1) saturate(7) hue-rotate(0deg) brightness(1.2); }
+            to   { filter: sepia(1) saturate(7) hue-rotate(360deg) brightness(1.2); }
+        }
+        .mc-blast {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 48;
+            pointer-events: none;
+            width: 280px;
+            height: 280px;
+            margin: -140px 0 0 -140px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffffff 0%, #ffe14d 30%, #ff5500 60%, #ff00ff 84%, transparent 85%);
+            animation: mc-blast 1.6s ease-in-out forwards, mc-flicker 0.12s steps(2) infinite;
+        }
+        @keyframes mc-blast {
+            0%   { transform: scale(0.05); }
+            55%  { transform: scale(1); }
+            75%  { transform: scale(0.88); }
+            100% { transform: scale(0); }
+        }
+        @keyframes mc-flicker {
+            50% { filter: hue-rotate(130deg) brightness(1.35); }
+        }
+
         .ink-spot {
             position: fixed;
             left: 0;
@@ -1568,6 +1607,20 @@ Rebooting in American...</div>
             o.stop(t + 0.15);
         }
 
+        function sfxPop() { // asteroid crunch
+            if (sfxMuted) return;
+            const ctx = sfxGet();
+            if (!ctx || ctx.state !== 'running') return;
+            const t = ctx.currentTime;
+            const n = sfxNoiseSrc(ctx), f = ctx.createBiquadFilter(), g = ctx.createGain();
+            f.type = 'bandpass';
+            f.frequency.value = 900;
+            g.gain.setValueAtTime(0.22, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+            n.connect(f); f.connect(g); g.connect(ctx.destination);
+            n.start(t); n.stop(t + 0.2);
+        }
+
         function sfxExplode() {
             if (sfxMuted) return;
             const ctx = sfxGet();
@@ -2152,6 +2205,95 @@ Rebooting in American...</div>
                 }
             }, 1000);
 
+            // ===== Crude asteroids. 10% are invincible and hungry. =====
+            const asteroids = [];
+
+            function buildAsteroidCanvas(rPix, invincible) {
+                const s = Math.ceil(rPix * 2 + 4);
+                const c = document.createElement('canvas');
+                c.width = s;
+                c.height = s;
+                const g = c.getContext('2d');
+                const verts = 9;
+                g.beginPath();
+                for (let i = 0; i < verts; i++) {
+                    const a = i / verts * Math.PI * 2;
+                    const rr = rPix * (0.62 + Math.random() * 0.38);
+                    const x = s / 2 + Math.cos(a) * rr, y = s / 2 + Math.sin(a) * rr;
+                    i ? g.lineTo(x, y) : g.moveTo(x, y);
+                }
+                g.closePath();
+                g.fillStyle = invincible ? '#5a4646' : '#7a7a7a';
+                g.fill();
+                g.strokeStyle = invincible ? '#ff3333' : '#3a3a3a';
+                g.lineWidth = 2;
+                g.stroke();
+                g.fillStyle = 'rgba(0,0,0,0.25)'; // craters
+                for (let i = 0; i < 3; i++) {
+                    g.beginPath();
+                    g.arc(s / 2 + (Math.random() - 0.5) * rPix, s / 2 + (Math.random() - 0.5) * rPix,
+                          rPix * (0.12 + Math.random() * 0.12), 0, 7);
+                    g.fill();
+                }
+                return c;
+            }
+
+            function spawnAsteroid() {
+                const invincible = Math.random() < 0.1;
+                const rPix = 9 + Math.random() * 8;
+                const el = buildAsteroidCanvas(rPix, invincible);
+                el.className = 'roid';
+                const R = Math.round(rPix * 2.6);
+                el.style.width = (R * 2) + 'px';
+                el.style.height = (R * 2) + 'px';
+                document.body.appendChild(el);
+                const edge = Math.floor(Math.random() * 4);
+                const a = {
+                    el, R, invincible,
+                    x: edge === 0 ? -R * 2 : edge === 1 ? innerWidth : Math.random() * innerWidth,
+                    y: edge === 2 ? -R * 2 : edge === 3 ? innerHeight : Math.random() * innerHeight,
+                    vx: (Math.random() - 0.5) * 60,
+                    vy: (Math.random() - 0.5) * 60,
+                    spin: 0,
+                    spinRate: (Math.random() - 0.5) * 90,
+                    state: 'drift',
+                    timer: 0
+                };
+                if (Math.abs(a.vx) < 15) a.vx = 20 * Math.sign(a.vx || 1);
+                a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px)';
+                asteroids.push(a);
+                return a;
+            }
+
+            function destroyAsteroid(a) {
+                const i = asteroids.indexOf(a);
+                if (i === -1) return;
+                asteroids.splice(i, 1);
+                a.el.remove();
+                sfxPop();
+                for (let j = 0; j < 10; j++) spawnDebris(a.x + a.R, a.y + a.R, 220);
+            }
+
+            // Missile Command send-off: expanding flickering disc, then gone.
+            function mcBlast(cx, cy) {
+                sfxExplode();
+                const b = document.createElement('div');
+                b.className = 'mc-blast';
+                b.style.translate = cx + 'px ' + cy + 'px';
+                document.body.appendChild(b);
+                setTimeout(() => b.remove(), 1700);
+                document.body.classList.add('shaking');
+                setTimeout(() => document.body.classList.remove('shaking'), 450);
+                // the blast takes ordinary asteroids with it
+                for (let i = asteroids.length - 1; i >= 0; i--) {
+                    const a = asteroids[i];
+                    if (!a.invincible && Math.hypot(a.x + a.R - cx, a.y + a.R - cy) < 150) destroyAsteroid(a);
+                }
+            }
+
+            for (let i = 0; i < 5; i++) spawnAsteroid();
+            setInterval(() => { if (asteroids.length < 6) spawnAsteroid(); }, 4000);
+
             let last = performance.now();
             function step(now) {
                 const dt = Math.min((now - last) / 1000, 0.05);
@@ -2182,11 +2324,69 @@ Rebooting in American...</div>
                         }
                     }
                 }
+                for (let i = asteroids.length - 1; i >= 0; i--) {
+                    const a = asteroids[i];
+                    if (a.state === 'digest') {
+                        a.timer -= dt;
+                        if (a.timer <= 0) {
+                            asteroids.splice(i, 1);
+                            a.el.remove();
+                            mcBlast(a.x + a.R, a.y + a.R);
+                        }
+                        continue; // digesting rocks don't move
+                    }
+                    if (a.invincible && llamas.length > 1) { // never eat the last llama
+                        let prey = null, bestD = Infinity;
+                        for (const l of llamas) {
+                            const d = Math.hypot(l.x + l.w / 2 - (a.x + a.R), l.y + l.h / 2 - (a.y + a.R));
+                            if (d < bestD) { bestD = d; prey = l; }
+                        }
+                        if (prey) {
+                            const dx = prey.x + prey.w / 2 - (a.x + a.R);
+                            const dy = prey.y + prey.h / 2 - (a.y + a.R);
+                            const m = Math.hypot(dx, dy) || 1;
+                            a.vx = dx / m * 95;
+                            a.vy = dy / m * 95;
+                            if (bestD < a.R + Math.min(prey.w, prey.h) * 0.4) {
+                                // om nom: the llama is eaten, digestion begins
+                                const li = llamas.indexOf(prey);
+                                if (li !== -1) { llamas.splice(li, 1); prey.el.remove(); }
+                                for (let j = 0; j < 8; j++) spawnDebris(prey.x + prey.w / 2, prey.y + prey.h / 2, 120);
+                                a.state = 'digest';
+                                a.timer = 2.5;
+                                a.vx = a.vy = 0;
+                                a.el.classList.add('roid-digest');
+                                continue;
+                            }
+                        }
+                    }
+                    a.x += a.vx * dt;
+                    a.y += a.vy * dt;
+                    a.spin += a.spinRate * dt;
+                    // wrap around the screen like it's 1979
+                    const D = a.R * 2;
+                    if (a.x < -D) a.x = innerWidth; else if (a.x > innerWidth) a.x = -D;
+                    if (a.y < -D) a.y = innerHeight; else if (a.y > innerHeight) a.y = -D;
+                    a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px) rotate(' + Math.round(a.spin) + 'deg)';
+                }
                 for (let i = shots.length - 1; i >= 0; i--) {
                     const s = shots[i];
                     s.x += s.vx * dt;
                     s.y += s.vy * dt;
-                    if (s.x < -60 || s.x > innerWidth + 60 || s.y < -60 || s.y > innerHeight + 60) {
+                    let hitRoid = false;
+                    for (const a of asteroids) {
+                        if (a.state === 'digest') continue;
+                        if (Math.hypot(s.x - (a.x + a.R), s.y - (a.y + a.R)) < a.R * 0.8 + 8) {
+                            hitRoid = true;
+                            if (a.invincible) {
+                                for (let j = 0; j < 3; j++) spawnDebris(s.x, s.y, 60); // armour spark
+                            } else {
+                                destroyAsteroid(a);
+                            }
+                            break;
+                        }
+                    }
+                    if (hitRoid || s.x < -60 || s.x > innerWidth + 60 || s.y < -60 || s.y > innerHeight + 60) {
                         s.el.remove();
                         shots.splice(i, 1);
                     } else {
