@@ -936,6 +936,8 @@
         body.now footer { padding: 10vh 8vw 24vh; }
         body.now .copyright { color: #aaaaaa; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
         /* the fauna stays, but joins the monochrome regime */
+        .llama-vec, .roid-vec { image-rendering: auto; } /* vector wireframes want smooth lines */
+        body.now.no-paint, body.now.no-paint * { cursor: crosshair !important; } /* no WebGL2 fallback */
         body.now .llama-sprite { animation: none; filter: grayscale(1) contrast(1.2); }
         body.now .llama-shot, body.now .sparkle, body.now .llama-boom,
         body.now .mc-blast, body.now .boom-ring { filter: grayscale(1); }
@@ -2034,91 +2036,345 @@ Rebooting in American...</div>
         }
 
         // ===== NOW / THEN: one button, twenty-eight years =====
-        // NOW mode swaps the site for its inevitable 2026 rebrand and replaces
-        // the cursor with a fullscreen WebGL shader. The fragment source below
-        // is Shadertoy-compatible (iResolution / iTime / iMouse + mainImage),
-        // so a real Shadertoy can be pasted over the placeholder verbatim.
-        const NOW_CURSOR_SHADER = `
-// --- placeholder shader: replace with the real Shadertoy mainImage() ---
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 p = (fragCoord - iMouse.xy) / iResolution.y;
-    float d = length(p);
-    float pulse = 0.030 + 0.008 * sin(iTime * 4.0);
-    float ring = smoothstep(0.006, 0.0, abs(d - pulse));
-    float core = smoothstep(0.005, 0.0, d);
-    float v = clamp(ring + core, 0.0, 1.0);
-    fragColor = vec4(vec3(0.0), v); // monochrome era, monochrome cursor
+        // NOW mode hands the cursor to "Fraquid Drizzle Melt"
+        // (https://www.shadertoy.com/view/fXBSWz): moving the mouse lays down
+        // wet, turbulent ink that washes over the whole page — UI and all —
+        // then melts, thins and fades until the content is visible again.
+        // The Shadertoy runs in its original two passes: Buffer A (feedback
+        // fluid) in a half-res ping-pong buffer, and the Image pass composited
+        // over the live page (its checkerboard background swapped for
+        // transparency so the site itself is the paper).
+
+        const NOW_COMMON = `
+// shortcut to sample texture
+#define TEX(uv) texture(iChannel0, uv).r
+#define TEX1(uv) texture(iChannel1, uv).r
+
+// shortcut for smoothstep uses
+#define trace(edge, thin) smoothstep(thin, .0, edge)
+#define ss(a,b,t) smoothstep(a,b,t)
+`;
+
+        // Buffer A, as authored, with two small changes: fade raised .05 -> .1
+        // so the page resurfaces sooner, and the broken-stroke flag read from
+        // the stored .z instead of a negative .x (negatives don't survive
+        // 8-bit fallback buffers).
+        const NOW_BUFFER_A = `
+// Adjusted constants for a slower, pooling liquid dynamic
+const float speed = .02;
+const float scale = .15;
+const float falloff = 2.5;
+const float fade = .1;
+const float strength = .8;
+const float range = 4.;
+
+// Fractal brownian motion
+vec3 fbm(vec3 p)
+{
+    vec3 result = vec3(0);
+    float amplitude = 0.5;
+    for (float index = 0.; index < 4.; ++index)
+    {
+       result += texture(iChannel0, (p/amplitude).xy).xyz * amplitude;
+        amplitude /= falloff;
+    }
+    return result;
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uvScreen = fragCoord.xy / iResolution.xy;
+    vec2 aspect = vec2(iResolution.x/iResolution.y, 1.0);
+    vec2 currentMouse = iMouse.xy / iResolution.xy;
+
+    // 1. The Memory Hijack: Store current cursor state in pixel (0,0)
+    if (fragCoord.x < 1.0 && fragCoord.y < 1.0) {
+        if (iMouse.z > 0.0) {
+            // Mouse is down, store coordinates
+            fragColor = vec4(currentMouse, 1.0, 1.0);
+        } else {
+            // Mouse is up, store a broken-stroke flag
+            fragColor = vec4(0.0);
+        }
+        return;
+    }
+
+    // Retrieve previous mouse position
+    vec4 prevData = texture(iChannel1, vec2(0.5) / iResolution.xy);
+    vec2 prevMouse = prevData.xy;
+
+    float paint = 0.0;
+
+    // 2. Continuous Stroke Logic (Only fires on drag)
+    if (iMouse.z > 0.0) {
+        vec2 p = uvScreen * aspect;
+        vec2 b = currentMouse * aspect;
+        // If stroke was broken, start the line exactly at the current mouse
+        vec2 a = (prevData.z > 0.5) ? prevMouse * aspect : b;
+
+        // Continuous Capsule SDF (Line Segment)
+        vec2 pa = p - a, ba = b - a;
+        float h = clamp(dot(pa, ba) / max(dot(ba, ba), 0.0001), 0.0, 1.0);
+        float dist = length(pa - ba * h);
+
+        // Domain Warping for the fluid body
+        vec3 warp = fbm(vec3(uvScreen * 0.5, iTime * speed));
+        vec3 spice = fbm(vec3(uvScreen * scale + warp.xy * 0.2, iTime * speed));
+
+        // The Drizzle Effect: Varying volume to feel organic
+        float pressure = mix(0.5, 1.5, sin(iTime * 5.0) * 0.5 + 0.5);
+        float radius = (0.01 + spice.z * 0.02) * pressure;
+
+        // Extremely soft brush edge to force seamless melting
+        paint = smoothstep(radius + 0.05, radius - 0.01, dist + spice.x * 0.02);
+    }
+
+    // 3. Normal Calculation and Expansion
+    vec2 offset = vec2(0);
+    vec4 data = texture(iChannel1, uvScreen);
+    vec3 unit = vec3(range / 472. / aspect.x, 0.0, 0.0);
+
+    vec3 normal = normalize(vec3(
+        TEX1(uvScreen - unit.xz) - TEX1(uvScreen + unit.xz),
+        TEX1(uvScreen - unit.zy) - TEX1(uvScreen + unit.zy),
+        data.x * data.x + 0.001
+    ));
+
+    vec3 warpExpansion = fbm(vec3(uvScreen * 0.5, iTime * speed));
+    offset -= normal.xy * (0.5 + warpExpansion.y * 1.5);
+
+    // 4. Turbulence Vectoring
+    warpExpansion.x *= 6.28 * 2.0;
+    warpExpansion.x += iTime * 0.8;
+    offset += vec2(cos(warpExpansion.x), sin(warpExpansion.x)) * (0.6 + warpExpansion.z * 0.8);
+
+    // 5. Sample displaced buffer and accumulate
+    vec2 sampleUv = uvScreen + strength * offset / aspect / 472.0;
+    vec4 frame = texture(iChannel1, sampleUv);
+
+    paint = max(paint, frame.x - iTimeDelta * fade);
+
+    fragColor = vec4(clamp(paint, 0., 1.));
+}`;
+
+        // Image pass, as authored, minus the checkerboard: the paint mask
+        // becomes the alpha so the liquid sits on the real page and the UI
+        // shows through as it dries.
+        const NOW_IMAGE = `
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Base coordinates
+    vec2 uv = fragCoord.xy / iResolution.xy;
+    vec3 dither = texture(iChannel1, fragCoord.xy / 2048.).rgb;
+
+    // Value from Buffer A
+    vec4 data = texture(iChannel0, uv);
+    float gray = data.x;
+
+    // Gradient normal from gray value
+    float range = 3.;
+    vec2 aspect = vec2(iResolution.x/iResolution.y, 1);
+    vec3 unit = vec3(range/472./aspect.x, 0.0, 0.0);
+    vec3 normal = normalize(vec3(
+        TEX(uv + unit.xz)-TEX(uv - unit.xz),
+        TEX(uv + unit.zy)-TEX(uv - unit.zy),
+        gray*gray*gray));
+
+    // Lighting Model
+    // Backlight
+    vec3 colour = vec3(.3)*(1.-abs(dot(normal, vec3(0,0,1))));
+
+    // Specular light
+    vec3 dir = normalize(vec3(0,1,2));
+    float specular = pow(max(dot(normal, dir), 0.0), 5.0)*.5+5.0;
+    colour += vec3(.5)*ss(.2, 1., specular);
+
+    // Chromatic edge tint
+    vec3 tint = .5+.5*cos(vec3(1,2,3)*1.+dot(normal, dir)*4.-uv.y*3.-3.);
+    colour += tint * smoothstep(.15, .0, gray);
+
+    // Dither to prevent colour banding
+    colour -= dither.x*.1;
+    colour = clamp(colour, 0., 1.);
+
+    // The paint mask is the alpha: ink over the page, page back as it fades
+    float alpha = ss(0.01, 0.1, gray) * 0.92;
+
+    // Small ink bead so the cursor is never lost between strokes
+    float d = length((fragCoord.xy - iMouse.xy) / iResolution.y);
+    float bead = smoothstep(0.006, 0.003, d);
+    colour = mix(colour, vec3(0.05), bead);
+    alpha = max(alpha, bead * 0.85);
+
+    fragColor = vec4(colour * alpha, alpha);
 }`;
 
         const eraBtn = document.getElementById('era-toggle');
         const nowCanvas = document.getElementById('now-cursor');
         const nowMouse = [innerWidth / 2, innerHeight / 2];
-        let nowGl = null, nowUniforms = null, nowRaf = null, nowT0 = 0;
+        const PAINT_SCALE = 0.5; // the feedback buffer runs at half resolution
+        let nowLastMove = -1e9;
+        let nowGl = null, nowRaf = null, nowT0 = 0, nowLastT = 0;
+        let paintTex = [], paintFbo = [], paintPing = 0, bufW = 0, bufH = 0;
+        let noiseTex = null, progA = null, progI = null, paintHalfFloat = false;
 
         document.addEventListener('mousemove', (e) => {
             nowMouse[0] = e.clientX;
             nowMouse[1] = innerHeight - e.clientY; // Shadertoy origin is bottom-left
+            nowLastMove = performance.now();
         });
 
-        function nowCursorInit() {
-            const gl = nowCanvas.getContext('webgl', { alpha: true, premultipliedAlpha: true });
-            if (!gl) return null;
+        function nowCompile(gl, fragBody) {
             const vs = gl.createShader(gl.VERTEX_SHADER);
-            gl.shaderSource(vs, 'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }');
+            gl.shaderSource(vs, '#version 300 es\nlayout(location=0) in vec2 p; void main() { gl_Position = vec4(p, 0., 1.); }');
             gl.compileShader(vs);
             const fs = gl.createShader(gl.FRAGMENT_SHADER);
             gl.shaderSource(fs,
-                'precision mediump float;\n' +
-                'uniform vec3 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n' +
-                NOW_CURSOR_SHADER + '\n' +
-                'void main() { vec4 c = vec4(0.0); mainImage(c, gl_FragCoord.xy); gl_FragColor = vec4(c.rgb * c.a, c.a); }');
+                '#version 300 es\nprecision highp float;\n' +
+                'uniform vec3 iResolution;\nuniform float iTime;\nuniform float iTimeDelta;\nuniform vec4 iMouse;\n' +
+                'uniform highp sampler2D iChannel0;\nuniform highp sampler2D iChannel1;\nout vec4 outColour;\n' +
+                NOW_COMMON + fragBody +
+                '\nvoid main() { mainImage(outColour, gl_FragCoord.xy); }');
             gl.compileShader(fs);
             if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
                 console.error('now-cursor shader:', gl.getShaderInfoLog(fs));
                 return null;
             }
-            const prog = gl.createProgram();
-            gl.attachShader(prog, vs);
-            gl.attachShader(prog, fs);
-            gl.linkProgram(prog);
-            gl.useProgram(prog);
-            const buf = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-            const loc = gl.getAttribLocation(prog, 'p');
-            gl.enableVertexAttribArray(loc);
-            gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-            nowUniforms = {
-                res: gl.getUniformLocation(prog, 'iResolution'),
-                time: gl.getUniformLocation(prog, 'iTime'),
-                mouse: gl.getUniformLocation(prog, 'iMouse')
+            const p = gl.createProgram();
+            gl.attachShader(p, vs);
+            gl.attachShader(p, fs);
+            gl.linkProgram(p);
+            gl.useProgram(p);
+            gl.uniform1i(gl.getUniformLocation(p, 'iChannel0'), 0);
+            gl.uniform1i(gl.getUniformLocation(p, 'iChannel1'), 1);
+            return {
+                p,
+                res: gl.getUniformLocation(p, 'iResolution'),
+                time: gl.getUniformLocation(p, 'iTime'),
+                dt: gl.getUniformLocation(p, 'iTimeDelta'),
+                mouse: gl.getUniformLocation(p, 'iMouse')
             };
+        }
+
+        function nowMakeBuffers(gl) {
+            bufW = Math.max(8, Math.round(nowCanvas.width * PAINT_SCALE));
+            bufH = Math.max(8, Math.round(nowCanvas.height * PAINT_SCALE));
+            for (const t of paintTex) gl.deleteTexture(t);
+            for (const f of paintFbo) gl.deleteFramebuffer(f);
+            paintTex = [];
+            paintFbo = [];
+            for (let i = 0; i < 2; i++) {
+                const t = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, t);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                if (paintHalfFloat) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, bufW, bufH, 0, gl.RGBA, gl.HALF_FLOAT, null);
+                else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, bufW, bufH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+                const f = gl.createFramebuffer();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+                gl.clearColor(0, 0, 0, 0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                paintTex.push(t);
+                paintFbo.push(f);
+            }
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+
+        function nowCursorInit() {
+            const gl = nowCanvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true });
+            if (!gl) return null;
+            paintHalfFloat = !!(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'));
+            let bufSrc = NOW_BUFFER_A;
+            if (!paintHalfFloat) {
+                // 8-bit buffers round tiny decrements to nothing: force a fadeable step
+                bufSrc = bufSrc.replace('iTimeDelta * fade', 'max(iTimeDelta * fade, 0.007)');
+            }
+            progA = nowCompile(gl, bufSrc);
+            progI = nowCompile(gl, NOW_IMAGE);
+            if (!progA || !progI) return null;
+            // fullscreen triangle
+            const vbo = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+            // white-noise texture standing in for Shadertoy's RGBA-noise channel
+            noiseTex = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+            const rnd = new Uint8Array(256 * 256 * 4);
+            for (let i = 0; i < rnd.length; i++) rnd[i] = Math.random() * 256;
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, rnd);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            nowCanvas.width = innerWidth;
+            nowCanvas.height = innerHeight;
+            nowMakeBuffers(gl);
             return gl;
         }
 
         function nowCursorFrame(t) {
-            if (!nowT0) nowT0 = t;
             const gl = nowGl;
+            if (!nowT0) { nowT0 = t; nowLastT = t; }
+            const dt = Math.min(Math.max((t - nowLastT) / 1000, 0.0005), 0.1);
+            nowLastT = t;
             if (nowCanvas.width !== innerWidth || nowCanvas.height !== innerHeight) {
                 nowCanvas.width = innerWidth;
                 nowCanvas.height = innerHeight;
-                gl.viewport(0, 0, innerWidth, innerHeight);
+                nowMakeBuffers(gl);
             }
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.uniform3f(nowUniforms.res, nowCanvas.width, nowCanvas.height, 1);
-            gl.uniform1f(nowUniforms.time, (t - nowT0) / 1000);
-            gl.uniform4f(nowUniforms.mouse, nowMouse[0], nowMouse[1], 0, 0);
+            // the brush is "down" while the mouse moves or the button is held
+            const painting = (performance.now() - nowLastMove < 130) || wandHeld ? 1 : -1;
+            const time = (t - nowT0) / 1000;
+            const dst = 1 - paintPing;
+            // Pass 1 — Buffer A feedback fluid, half res
+            gl.bindFramebuffer(gl.FRAMEBUFFER, paintFbo[dst]);
+            gl.viewport(0, 0, bufW, bufH);
+            gl.useProgram(progA.p);
+            gl.uniform3f(progA.res, bufW, bufH, 1);
+            gl.uniform1f(progA.time, time);
+            gl.uniform1f(progA.dt, dt);
+            gl.uniform4f(progA.mouse, nowMouse[0] * bufW / innerWidth, nowMouse[1] * bufH / innerHeight, painting, 0);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, paintTex[paintPing]);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
+            // Pass 2 — Image, composited over the live page
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, nowCanvas.width, nowCanvas.height);
+            gl.useProgram(progI.p);
+            gl.uniform3f(progI.res, nowCanvas.width, nowCanvas.height, 1);
+            gl.uniform1f(progI.time, time);
+            gl.uniform1f(progI.dt, dt);
+            gl.uniform4f(progI.mouse, nowMouse[0], nowMouse[1], painting, 0);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, paintTex[dst]);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            paintPing = dst;
             nowRaf = requestAnimationFrame(nowCursorFrame);
         }
 
         function toggleEra() {
             const on = document.body.classList.toggle('now');
             eraBtn.textContent = on ? '🕰 take me back to 1998' : '✨ time travel to 2026';
+            if (window.__setVectorEra) window.__setVectorEra(on);
             if (on) {
-                if (!nowGl) nowGl = nowCursorInit();
-                if (nowGl && !nowRaf) nowRaf = requestAnimationFrame(nowCursorFrame);
+                if (!nowGl) {
+                    nowGl = nowCursorInit();
+                    if (!nowGl) document.body.classList.add('no-paint'); // no WebGL2: keep a visible cursor
+                }
+                if (nowGl && !nowRaf) {
+                    nowT0 = 0;
+                    nowRaf = requestAnimationFrame(nowCursorFrame);
+                }
             } else if (nowRaf) {
                 cancelAnimationFrame(nowRaf);
                 nowRaf = null;
@@ -2269,6 +2525,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             const AMMO_KINDS = Object.keys(AMMO);
             const llamas = [];
             const shots = [];
+            let vecEra = false; // NOW mode: everything becomes wireframe 3D
 
             function spawnLlama(speed, size, px, py) {
                 const neckScale = 1 + Math.random() * 7; // neck length: 1x to 8x
@@ -2286,7 +2543,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 const vx = Math.max(0.35, Math.abs(Math.cos(ang))) * speed * Math.sign(Math.cos(ang) || 1);
                 const vy = Math.max(0.35, Math.abs(Math.sin(ang))) * speed * Math.sign(Math.sin(ang) || 1);
                 const l = {
-                    el, speed, size, front,
+                    el, speed, size, front, neckScale,
+                    pixEl: el, vecEl: null, vecCtx: null, vecModel: null,
+                    ang3d: Math.random() * 6.28,
+                    rotSpd: 0.6 + Math.random() * 0.9,
                     w, h,
                     // spawn centred on the given point (clamped on-screen), else random
                     x: px !== undefined
@@ -2305,6 +2565,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     spin: 0
                 };
                 llamas.push(l);
+                if (vecEra) swapLlamaEl(l, true);
                 placeLlama(l);
                 return l;
             }
@@ -2398,8 +2659,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             document.addEventListener('click', (e) => {
                 // never steal clicks from anything interactive
                 if (e.target.closest('a, button, [onclick], .assistant, .midi-deck, #custom-modal, #intro, #bsod')) return;
-                // background llamas are hidden behind content; only front llamas are clickable there
-                const overContent = !!e.target.closest('.win95-window, .badge-row, .hit-counter-box, .webring, marquee');
+                // background llamas are hidden behind content; only front llamas are
+                // clickable there — except in 2026 mode, where the windows are
+                // transparent and every llama is in plain sight
+                const overContent = !document.body.classList.contains('now')
+                    && !!e.target.closest('.win95-window, .badge-row, .hit-counter-box, .webring, marquee');
                 const slop = 8;
                 for (let i = llamas.length - 1; i >= 0; i--) {
                     const l = llamas[i];
@@ -2482,6 +2746,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 const edge = Math.floor(Math.random() * 4);
                 const a = {
                     el, R, invincible,
+                    pixEl: el, vecEl: null, vecCtx: null, vecModel: null,
                     x: edge === 0 ? -R * 2 : edge === 1 ? innerWidth : Math.random() * innerWidth,
                     y: edge === 2 ? -R * 2 : edge === 3 ? innerHeight : Math.random() * innerHeight,
                     vx: (Math.random() - 0.5) * 60,
@@ -2494,6 +2759,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 if (Math.abs(a.vx) < 15) a.vx = 20 * Math.sign(a.vx || 1);
                 a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px)';
                 asteroids.push(a);
+                if (vecEra) swapRoidEl(a, true);
                 return a;
             }
 
@@ -2523,6 +2789,192 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                 }
             }
 
+            // ===== 2026 vectorisation: pixels out, rotating wireframe 3D in =====
+            // A llama is boxes: head, a neck of honest length, body, plus ear,
+            // leg and tail segments. Coordinates live in sprite-pixel space so
+            // the silhouette matches the pixel llama it replaces.
+            function llamaVecModel(neckScale) {
+                const extra = Math.round((neckScale - 1) * 4);
+                const verts = [], edges = [];
+                function box(x0, x1, y0, y1, hz) {
+                    const b = verts.length;
+                    for (const x of [x0, x1]) for (const y of [y0, y1]) for (const z of [-hz, hz]) verts.push([x, y, z]);
+                    for (const [i, j] of [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]]) {
+                        edges.push([b + i, b + j]);
+                    }
+                }
+                function seg(a, b) {
+                    const s = verts.length;
+                    verts.push(a, b);
+                    edges.push([s, s + 1]);
+                }
+                box(0, 7, 1, 6, 2.5);                        // head
+                box(4, 7, 6, 10 + extra, 1.5);               // neck
+                box(7, 19, 10 + extra, 14 + extra, 2.5);     // body
+                seg([2, 1, 0], [2, -1, 0]);                  // ears
+                seg([5, 1, 0], [5, -1, 0]);
+                seg([8.5, 14 + extra, -1.8], [8.5, 19 + extra, -1.8]);  // legs
+                seg([9.5, 14 + extra, 1.8], [9.5, 19 + extra, 1.8]);
+                seg([17, 14 + extra, -1.8], [17, 19 + extra, -1.8]);
+                seg([18, 14 + extra, 1.8], [18, 19 + extra, 1.8]);
+                seg([19, 10 + extra, 0], [20.5, 8 + extra, 0]);         // tail
+                return { verts, edges, w: 22, h: rows + extra };
+            }
+
+            function drawWire(ctx, model, ang, cw, ch, lw) {
+                ctx.clearRect(0, 0, cw, ch);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = lw;
+                ctx.lineCap = 'round';
+                const sc = Math.min(cw / (model.w + 3), ch / (model.h + 3));
+                const D = model.w * 2.4; // camera distance, in model units
+                const ca = Math.cos(ang), sa = Math.sin(ang);
+                const cx = model.w / 2, cy = model.h / 2;
+                ctx.beginPath();
+                for (const [i, j] of model.edges) {
+                    let first = true;
+                    for (const [x, y, z] of [model.verts[i], model.verts[j]]) {
+                        const rx = (x - cx) * ca - z * sa;
+                        const rz = (x - cx) * sa + z * ca;
+                        const per = D / (D + rz);
+                        const px = cw / 2 + rx * sc * per, py = ch / 2 + (y - cy) * sc * per;
+                        first ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                        first = false;
+                    }
+                }
+                ctx.stroke();
+            }
+
+            function makeLlamaVecEl(l) {
+                const c = document.createElement('canvas');
+                c.className = 'llama-sprite llama-vec';
+                c.width = Math.max(4, Math.round(l.w));
+                c.height = Math.max(4, Math.round(l.h));
+                c.style.width = Math.round(l.w) + 'px';
+                c.style.height = Math.round(l.h) + 'px';
+                l.vecEl = c;
+                l.vecCtx = c.getContext('2d');
+                l.vecModel = llamaVecModel(l.neckScale);
+                return c;
+            }
+
+            function swapLlamaEl(l, vec) {
+                const target = vec ? (l.vecEl || makeLlamaVecEl(l)) : l.pixEl;
+                if (l.el === target) return;
+                l.el.replaceWith(target);
+                l.el = target;
+                l.el.style.zIndex = l.front ? 45 : -1;
+                if (vec) drawWire(l.vecCtx, l.vecModel, l.ang3d, target.width, target.height, 1.4);
+                placeLlama(l);
+            }
+
+            // Rocks are lumpy 10-vertex spheroids: pole, ring of 5, ring of 5, pole.
+            function roidVecModel() {
+                const verts = [], edges = [];
+                const jitter = () => 0.72 + Math.random() * 0.28;
+                function ring(y, r, off) {
+                    const idx = [];
+                    for (let i = 0; i < 5; i++) {
+                        const a = off + i / 5 * Math.PI * 2;
+                        idx.push(verts.length);
+                        verts.push([Math.cos(a) * r * jitter(), y * (0.8 + Math.random() * 0.4), Math.sin(a) * r * jitter()]);
+                    }
+                    return idx;
+                }
+                const top = verts.length;
+                verts.push([(Math.random() - 0.5) * 0.3, -1 - Math.random() * 0.2, (Math.random() - 0.5) * 0.3]);
+                const up = ring(-0.45, 0.85, Math.random());
+                const lo = ring(0.45, 0.85, Math.random());
+                const bot = verts.length;
+                verts.push([(Math.random() - 0.5) * 0.3, 1 + Math.random() * 0.2, (Math.random() - 0.5) * 0.3]);
+                for (const i of up) edges.push([top, i]);
+                for (let i = 0; i < 5; i++) {
+                    edges.push([up[i], up[(i + 1) % 5]]);
+                    edges.push([lo[i], lo[(i + 1) % 5]]);
+                    edges.push([up[i], lo[i]]);
+                }
+                for (const i of lo) edges.push([bot, i]);
+                return { verts, edges };
+            }
+
+            function makeRoidVecEl(a) {
+                const c = document.createElement('canvas');
+                c.className = 'roid roid-vec';
+                c.width = a.R * 2;
+                c.height = a.R * 2;
+                c.style.width = (a.R * 2) + 'px';
+                c.style.height = (a.R * 2) + 'px';
+                a.vecEl = c;
+                a.vecCtx = c.getContext('2d');
+                a.vecModel = roidVecModel();
+                return c;
+            }
+
+            function drawVecRoid(a) {
+                const ctx = a.vecCtx, S = a.R;
+                ctx.clearRect(0, 0, S * 2, S * 2);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = a.state === 'digest'
+                    ? 2 + Math.sin(performance.now() / 60) * 1.2   // chewing
+                    : (a.invincible ? 2.6 : 1.3);                  // armour reads as heavier line
+                ctx.lineCap = 'round';
+                const ay = a.spin * Math.PI / 180, ax = ay * 0.63;
+                const cy1 = Math.cos(ay), sy1 = Math.sin(ay), cx1 = Math.cos(ax), sx1 = Math.sin(ax);
+                const D = 3.2, r = S * 0.82;
+                ctx.beginPath();
+                for (const [i, j] of a.vecModel.edges) {
+                    let first = true;
+                    for (const [x, y, z] of [a.vecModel.verts[i], a.vecModel.verts[j]]) {
+                        const rx = x * cy1 - z * sy1;
+                        let rz = x * sy1 + z * cy1;
+                        const ry = y * cx1 - rz * sx1;
+                        rz = y * sx1 + rz * cx1;
+                        const per = D / (D + rz);
+                        const px = S + rx * r * per, py = S + ry * r * per;
+                        first ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                        first = false;
+                    }
+                }
+                ctx.stroke();
+            }
+
+            function swapRoidEl(a, vec) {
+                const target = vec ? (a.vecEl || makeRoidVecEl(a)) : a.pixEl;
+                if (a.el === target) return;
+                a.el.replaceWith(target);
+                a.el = target;
+                a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px)'
+                    + (vec ? '' : ' rotate(' + Math.round(a.spin) + 'deg)');
+                if (vec) drawVecRoid(a);
+            }
+
+            window.__setVectorEra = function (on) {
+                vecEra = on;
+                for (const l of llamas) swapLlamaEl(l, on);
+                for (const a of asteroids) swapRoidEl(a, on);
+            };
+
+            // Shoot the rocks: a wand click is live ammunition now.
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('a, button, [onclick], .assistant, .midi-deck, #custom-modal, #intro, #bsod')) return;
+                // rocks drift behind the windows; no blind-firing through content —
+                // unless it's 2026 and the windows are made of whitespace
+                if (!document.body.classList.contains('now')
+                    && e.target.closest('.win95-window, .badge-row, .hit-counter-box, .webring, marquee')) return;
+                for (let i = asteroids.length - 1; i >= 0; i--) {
+                    const a = asteroids[i];
+                    if (a.state === 'digest') continue;
+                    if (Math.hypot(e.clientX - (a.x + a.R), e.clientY - (a.y + a.R)) < a.R + 12) {
+                        if (a.invincible) {
+                            for (let j = 0; j < 6; j++) spawnDebris(e.clientX, e.clientY, 70); // armour spark
+                        } else {
+                            destroyAsteroid(a);
+                        }
+                        break;
+                    }
+                }
+            });
+
             for (let i = 0; i < 5; i++) spawnAsteroid();
             setInterval(() => { if (asteroids.length < 6) spawnAsteroid(); }, 4000);
 
@@ -2543,6 +2995,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                         l.spin = (l.spin + 540 * dt) % 360;
                     }
                     placeLlama(l);
+                    if (l.el === l.vecEl) { // wireframe showroom rotation
+                        l.ang3d += l.rotSpd * dt;
+                        drawWire(l.vecCtx, l.vecModel, l.ang3d, l.vecEl.width, l.vecEl.height, 1.4);
+                    }
                     if (l.type !== 'exploder') {
                         l.cooldown -= dt;
                         if (l.cooldown <= 0) {
@@ -2559,6 +3015,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                             asteroids.splice(i, 1);
                             a.el.remove();
                             mcBlast(a.x + a.R, a.y + a.R);
+                        } else if (a.el === a.vecEl) {
+                            drawVecRoid(a); // keep the chewing pulse animated
                         }
                         continue; // digesting rocks don't move
                     }
@@ -2594,7 +3052,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                     const D = a.R * 2;
                     if (a.x < -D) a.x = innerWidth; else if (a.x > innerWidth) a.x = -D;
                     if (a.y < -D) a.y = innerHeight; else if (a.y > innerHeight) a.y = -D;
-                    a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px) rotate(' + Math.round(a.spin) + 'deg)';
+                    if (a.el === a.vecEl) {
+                        // vector rocks tumble in 3D on the canvas, not in CSS
+                        a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px)';
+                        drawVecRoid(a);
+                    } else {
+                        a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px) rotate(' + Math.round(a.spin) + 'deg)';
+                    }
                 }
                 for (let i = shots.length - 1; i >= 0; i--) {
                     const s = shots[i];
