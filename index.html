@@ -2876,45 +2876,43 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec4 data = texture(iChannel0, uv);
     float gray = data.x;
 
-    // Gradient normal from gray value
-    float range = 3.;
+    // Gradient normal from gray value — a wide stencil, plus a second even
+    // wider tap, so the liquify band is broad and soft instead of a thin rim
+    float range = 9.;
     vec2 aspect = vec2(iResolution.x/iResolution.y, 1);
     vec3 unit = vec3(range/472./aspect.x, 0.0, 0.0);
-    vec3 normal = normalize(vec3(
+    vec2 g1 = vec2(
         TEX(uv + unit.xz)-TEX(uv - unit.xz),
-        TEX(uv + unit.zy)-TEX(uv - unit.zy),
-        gray*gray*gray));
+        TEX(uv + unit.zy)-TEX(uv - unit.zy));
+    vec2 g2 = vec2(
+        TEX(uv + unit.xz*2.5)-TEX(uv - unit.xz*2.5),
+        TEX(uv + unit.zy*2.5)-TEX(uv - unit.zy*2.5));
+    vec3 normal = normalize(vec3(g1 * 0.6 + g2 * 0.4, gray*gray*gray));
 
     vec3 L = normalize(vec3(0.4, 0.6, 0.7));
     float slope = clamp(length(normal.xy) * 1.7, 0.0, 1.0);  // rim of the ripple
     float side = dot(normal, L);                             // lit side vs shade side
-    float spec = pow(max(side, 0.0), 20.0);                  // sun glints
-    // soft, feathered presence: never fully opaque, eases in over a wide band
-    float mask = ss(0.003, 0.28, gray) * 0.9;
+    float spec = pow(max(side, 0.0), 20.0);                  // sun glints (fallback only)
+    float mask = ss(0.003, 0.15, gray);                      // full presence, feathered edge
     vec3 tint = .5+.5*cos(vec3(1,2,3)+side*4.-uv.y*3.-3.);
 
-    // With a snapshot of the page (iChannel2): true refraction. The water
-    // bends the page itself, the way the original bent its checkerboard,
-    // and the reflection is intact again once the water stills.
-    vec2 refr = normal.xy * 0.16 * gray;
-    vec3 page = texture(iChannel2, vec2(
+    // The water itself is invisible. Its entire existence is inferred from
+    // what it does to the page: pure liquify — the snapshot displaced by the
+    // surface normals. No lighting, no film, no tint. Flat water shows the
+    // page exactly as it is, which is to say it shows nothing at all.
+    vec2 refr = normal.xy * 0.24 * gray;
+    vec3 water = texture(iChannel2, vec2(
         clamp(uv.x + refr.x, 0.001, 0.999),
         clamp(1.0 - (uv.y + refr.y), 0.001, 0.999))).rgb;
-    vec3 water = page * (0.965 + 0.07 * side * slope);
-    water = mix(water, vec3(1.0), spec * 0.25);
-    water += tint * slope * 0.04;
 
-    // Without a snapshot: invisible-glass rim only
+    // Without a snapshot there is nothing to displace: fall back to a faint
+    // visible rim so the brush isn't simply lost
     vec3 rimCol = mix(vec3(0.05), vec3(1.0), clamp(side * 0.5 + 0.5, 0., 1.))
-        + tint * slope * 0.12 + spec * 0.6;
+        + tint * slope * 0.12 + spec * 0.6 - dither.x * 0.06;
     float rimAlpha = min(mask * (slope * 0.42 + spec * 0.30), 0.8);
 
-    vec3 colour = mix(rimCol, water, uSnap);
+    vec3 colour = clamp(mix(rimCol, water, uSnap), 0., 1.);
     float alpha = mix(rimAlpha, mask, uSnap);
-
-    // Dither to prevent colour banding
-    colour -= dither.x*.03;
-    colour = clamp(colour, 0., 1.);
 
     // Crisp cursor dot: fixed pixel radius, hard edge, no pulse.
     // iResolution.z carries the devicePixelRatio.
@@ -3207,15 +3205,21 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         function drawWorm(ctx, W, H) {
             const cols = WORM_PALETTES[Math.floor(Math.random() * WORM_PALETTES.length)].map(wormHex);
             if (Math.random() < 0.5) cols.reverse();
-            const r0 = H * (0.10 + Math.random() * 0.06);
-            const waves = 1.5 + Math.random() * 2;
+            // the spine runs along the long axis; wide canvases get wide worms
+            const horizontal = W >= H;
+            const L = horizontal ? W : H;
+            const T = horizontal ? H : W;
+            const r0 = T * (0.18 + Math.random() * 0.10);
+            const waves = 1.5 + Math.random() * 2.5;
             const phase = Math.random() * Math.PI * 2;
-            const amp = Math.max(0, W / 2 - r0 * 1.2) * (0.75 + Math.random() * 0.25);
-            const steps = 220;
+            const amp = Math.max(0, T / 2 - r0 * 1.15) * (0.75 + Math.random() * 0.25);
+            const steps = 260;
             for (let i = 0; i <= steps; i++) {
                 const t = i / steps;
-                const y = r0 + t * (H - 2 * r0);
-                const x = W / 2 + Math.sin(phase + t * waves * Math.PI) * amp;
+                const along = r0 + t * (L - 2 * r0);
+                const across = T / 2 + Math.sin(phase + t * waves * Math.PI) * amp;
+                const x = horizontal ? along : across;
+                const y = horizontal ? across : along;
                 const r = r0 * (0.82 + 0.18 * Math.sin(t * 9 + phase));
                 const c = wormPaletteAt(cols, t);
                 const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
@@ -3231,21 +3235,21 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
         function spawnWorms() {
             removeWorms();
-            const d = nowDpr();
-            const count = 3 + Math.floor(Math.random() * 3);
+            const d = Math.min(nowDpr(), 1.5); // full-bleed worms, sane memory
+            const count = 5 + Math.floor(Math.random() * 3);
             const docH = Math.max(document.documentElement.scrollHeight, innerHeight);
             for (let i = 0; i < count; i++) {
                 const c = document.createElement('canvas');
                 c.className = 'now-worm';
-                const w = 260 + Math.random() * 360;
-                const h = w * (1.1 + Math.random() * 0.6);
+                const w = innerWidth * (0.92 + Math.random() * 0.24); // spans the width
+                const h = 280 + Math.random() * 420;
                 c.width = Math.round(w * d);
                 c.height = Math.round(h * d);
-                c.style.width = w + 'px';
-                c.style.height = h + 'px';
-                c.style.left = (Math.random() * 80 - 5) + 'vw';
+                c.style.width = Math.round(w) + 'px';
+                c.style.height = Math.round(h) + 'px';
+                c.style.left = (Math.random() * 8 - 6) + 'vw';
                 c.style.top = Math.round(docH * 0.04 + Math.random() * docH * 0.84) + 'px';
-                const rot = Math.round((Math.random() - 0.5) * 50);
+                const rot = Math.round((Math.random() - 0.5) * 16);
                 c.style.transform = 'rotate(' + rot + 'deg)';
                 drawWorm(c.getContext('2d'), c.width, c.height);
                 document.body.appendChild(c);
