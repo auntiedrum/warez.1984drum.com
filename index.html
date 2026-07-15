@@ -655,6 +655,78 @@
             margin: 0 0 1.25rem 0;
         }
 
+        /* ============ THE CONFESSION PIPELINE ============ */
+        #scam-wrap { margin: 0 0 1.25rem 0; }
+        .scam-label {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: #000000;
+            margin-bottom: 0.5rem;
+        }
+        .scam-track {
+            border: 2px solid #000000;
+            height: 14px;
+            background: #ffffff;
+        }
+        .scam-fill {
+            height: 100%;
+            width: 0%;
+            background: #000000;
+            transition: width 10s linear;
+        }
+        #gf-meme { border: 2px solid #000000; background: #000000; }
+        .gf-screen {
+            position: relative;
+            height: 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            overflow: hidden;
+        }
+        .gf-guy {
+            font-size: 2.6rem;
+            display: inline-block;
+            animation: gf-laugh 0.5s ease-in-out infinite;
+        }
+        .gf-guy.g2 { animation-delay: 0.12s; font-size: 3.1rem; }
+        .gf-guy.g3 { animation-delay: 0.24s; }
+        .gf-guy.g4 { animation: gf-point 0.7s ease-in-out infinite; font-size: 2.4rem; }
+        @keyframes gf-laugh {
+            0%, 100% { transform: translateY(0) rotate(-6deg); }
+            50% { transform: translateY(-12px) rotate(6deg); }
+        }
+        @keyframes gf-point {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(8px); }
+        }
+        .gf-cap {
+            position: absolute;
+            bottom: 4px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #ffffff;
+            font-family: Impact, 'Arial Black', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin: 0;
+        }
+        .gf-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 8px;
+            background: #111111;
+            color: #eeeeee;
+            font-family: 'Courier New', monospace;
+            font-size: 0.6rem;
+            border-top: 1px solid #333333;
+        }
+
         /* ============ ANCIENT PIG LIVE FEED ============ */
         .pig-live {
             margin-top: 1rem;
@@ -1839,14 +1911,35 @@ Rebooting in American...</div>
         const modalText = document.getElementById('modal-text');
 
         function showModal(message) {
+            resetModalOk();
             modalText.textContent = message;
             modal.style.display = 'flex';
         }
 
         function closeModal() {
             modal.style.display = 'none';
-            const w = document.getElementById('melt-wrap');
-            if (w) w.remove();
+            for (const id of ['melt-wrap', 'scam-wrap']) {
+                const w = document.getElementById(id);
+                if (w) w.remove();
+            }
+            resetModalOk();
+        }
+
+        // The modal's OK button, occasionally repurposed for confessions
+        function resetModalOk() {
+            const btn = document.querySelector('.modal-ok-row .win95-button');
+            btn.textContent = 'OK';
+            btn.onclick = closeModal;
+            document.querySelector('.modal-ok-row').style.display = '';
+        }
+
+        function showModalAction(message, label, action) {
+            resetModalOk();
+            modalText.textContent = message;
+            const btn = document.querySelector('.modal-ok-row .win95-button');
+            btn.textContent = label;
+            btn.onclick = action;
+            modal.style.display = 'flex';
         }
 
         // ===== Gratitude, unprompted =====
@@ -2078,6 +2171,117 @@ Rebooting in American...</div>
                 if (p) el.classList.add(p);
             }
             el.classList.toggle('inverted', Math.random() < 0.3);
+        }
+
+        // ===== The accept button would rather you read the terms first =====
+        // In 2026 mode it sidesteps an approaching cursor three times, then
+        // concludes you're trying to cheat and escalates.
+        let dodgeOx = 0, dodgeOy = 0, dodgeCount = 0, lastDodgeCheck = 0;
+        let scamState = 'armed'; // armed -> scolding -> done
+
+        document.addEventListener('mousemove', (e) => {
+            if (scamState !== 'armed' || !document.body.classList.contains('now')) return;
+            const n = performance.now();
+            if (n - lastDodgeCheck < 70) return;
+            lastDodgeCheck = n;
+            const btn = document.getElementById('consent-btn');
+            const b = btn.getBoundingClientRect();
+            if (!b.width) return;
+            const bx = b.left + b.width / 2, by = b.top + b.height / 2;
+            if (Math.hypot(e.clientX - bx, e.clientY - by) > 90) return;
+            dodgeCount++;
+            if (dodgeCount <= 3) {
+                // crisp sidestep, directly away from the cursor, kept on-screen
+                const baseX = bx - dodgeOx, baseY = by - dodgeOy;
+                const ang = Math.atan2(by - e.clientY, bx - e.clientX) + (Math.random() - 0.5);
+                dodgeOx = Math.max(30 - baseX, Math.min(innerWidth - 30 - baseX, dodgeOx + Math.cos(ang) * 130));
+                dodgeOy = Math.max(30 - baseY, Math.min(innerHeight - 30 - baseY, dodgeOy + Math.sin(ang) * 100));
+                btn.style.transform = 'translate(' + Math.round(dodgeOx) + 'px,' + Math.round(dodgeOy) + 'px)';
+            } else {
+                scamState = 'scolding';
+                btn.style.transform = '';
+                dodgeOx = dodgeOy = 0;
+                showModalAction(
+                    "You haven't read it have you?\n\nYou can't scam the system m8.",
+                    'sorry, please don’t tell anyone.',
+                    startConfession
+                );
+            }
+        });
+
+        function startConfession() {
+            modalText.textContent = 'OK, I won’t.';
+            document.querySelector('.modal-ok-row').style.display = 'none';
+            setTimeout(() => {
+                if (modal.style.display !== 'flex') return; // they fled; the internet remembers anyway
+                modalText.textContent = '';
+                const wrap = document.createElement('div');
+                wrap.id = 'scam-wrap';
+                wrap.innerHTML = '<div class="scam-label" id="scam-label">posting to tiktok</div>'
+                    + '<div class="scam-track"><div class="scam-fill" id="scam-fill"></div></div>';
+                const content = document.querySelector('#custom-modal .content');
+                content.insertBefore(wrap, content.querySelector('.modal-ok-row'));
+                setTimeout(() => {
+                    const f = document.getElementById('scam-fill');
+                    if (f) f.style.width = '100%';
+                }, 40);
+                setTimeout(() => {
+                    const el = document.getElementById('scam-label');
+                    if (el) el.textContent = 'then insta';
+                }, 3300);
+                setTimeout(() => {
+                    const el = document.getElementById('scam-label');
+                    if (el) el.textContent = 'then x.com';
+                }, 6600);
+                setTimeout(playGoodfellas, 10200);
+            }, 2000);
+        }
+
+        function playGoodfellas() {
+            const wrap = document.getElementById('scam-wrap');
+            if (!wrap || !wrap.isConnected) { scamState = 'done'; return; }
+            modalText.textContent = 'posted.';
+            wrap.innerHTML = '<div id="gf-meme">'
+                + '<div class="gf-screen">'
+                + '<span class="gf-guy g1">😂</span>'
+                + '<span class="gf-guy g2">🤣</span>'
+                + '<span class="gf-guy g3">😆</span>'
+                + '<span class="gf-guy g4">👉</span>'
+                + '<p class="gf-cap">funny how?</p>'
+                + '</div>'
+                + '<div class="gf-bar"><span>▶ GOODFELLAS_LAUGH.MEME</span><span>0:07 / 0:07</span></div>'
+                + '</div>';
+            sfxLaugh();
+            scamState = 'done'; // the button stops running either way
+            const row = document.querySelector('.modal-ok-row');
+            row.style.display = '';
+            const btn = row.querySelector('.win95-button');
+            btn.textContent = 'fair enough';
+            btn.onclick = closeModal;
+        }
+
+        function sfxLaugh() {
+            if (sfxMuted) return;
+            const ctx = sfxGet();
+            if (!ctx || ctx.state !== 'running') return;
+            const t0 = ctx.currentTime + 0.05;
+            for (let v = 0; v < 2; v++) {          // two lads, laughing at you
+                for (let i = 0; i < 7; i++) {
+                    const t = t0 + i * 0.19 + v * 0.09;
+                    const o = ctx.createOscillator(), g = ctx.createGain();
+                    o.type = 'triangle';
+                    const f = (v ? 260 : 330) * (i % 2 ? 0.85 : 1.1) * (1 - i * 0.03);
+                    o.frequency.setValueAtTime(f * 1.3, t);
+                    o.frequency.exponentialRampToValueAtTime(f * 0.8, t + 0.11);
+                    g.gain.setValueAtTime(0.0001, t);
+                    g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+                    o.connect(g);
+                    g.connect(ctx.destination);
+                    o.start(t);
+                    o.stop(t + 0.15);
+                }
+            }
         }
 
         // The checkboxes arrive pre-checked and accept nothing.
