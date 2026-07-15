@@ -713,17 +713,29 @@
             z-index: 40;
             pointer-events: none;
         }
+        .llama-laser {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 26px;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(255,0,64,0), #ff0040, #ff8080);
+            box-shadow: 0 0 6px #ff0040;
+            border-radius: 2px;
+            z-index: 40;
+            pointer-events: none;
+        }
         .llama-boom {
             position: fixed;
             left: 0;
             top: 0;
             z-index: 40;
             pointer-events: none;
-            animation: boomfx 0.7s ease-out forwards;
+            animation: boomfx 2.6s ease-out forwards;
         }
         @keyframes boomfx {
-            from { transform: scale(0.6); opacity: 1; }
-            to   { transform: scale(2.4); opacity: 0; }
+            from { transform: scale(0.5) rotate(0deg); opacity: 1; }
+            to   { transform: scale(3.4) rotate(40deg); opacity: 0; }
         }
         /* ============ ASTEROIDS ============ */
         .roid {
@@ -752,7 +764,7 @@
             margin: -140px 0 0 -140px;
             border-radius: 50%;
             background: radial-gradient(circle, #ffffff 0%, #ffe14d 30%, #ff5500 60%, #ff00ff 84%, transparent 85%);
-            animation: mc-blast 1.6s ease-in-out forwards, mc-flicker 0.12s steps(2) infinite;
+            animation: mc-blast 4.2s ease-in-out forwards, mc-flicker 0.5s steps(2) infinite;
         }
         @keyframes mc-blast {
             0%   { transform: scale(0.05); }
@@ -770,10 +782,10 @@
             z-index: 500;
             pointer-events: none;
             background: #ffffff;
-            animation: boom-flash-fade 0.22s ease-out forwards;
+            animation: boom-flash-fade 0.9s ease-out forwards;
         }
         @keyframes boom-flash-fade {
-            from { opacity: 0.75; }
+            from { opacity: 0.45; }
             to   { opacity: 0; }
         }
         .boom-ring {
@@ -786,11 +798,11 @@
             border: 4px solid #ffe14d;
             border-radius: 50%;
             box-shadow: 0 0 12px #ff5500, inset 0 0 12px #ff5500;
-            animation: boom-ring-grow 0.65s ease-out forwards;
+            animation: boom-ring-grow 3.2s ease-out forwards;
         }
         @keyframes boom-ring-grow {
-            from { transform: scale(0.3); opacity: 1; }
-            to   { transform: scale(18);  opacity: 0; }
+            from { transform: scale(0.3); opacity: 0.9; }
+            to   { transform: scale(48);  opacity: 0; }
         }
         body.shaking .marquee-bar,
         body.shaking header,
@@ -2016,6 +2028,11 @@ Rebooting in American...</div>
                 o.frequency.setValueAtTime(2300, t);
                 o.frequency.exponentialRampToValueAtTime(240, t + 0.16);
                 dur = 0.17;
+            } else if (kind === 'laser') {  // baby llama pew-pew
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(1500, t);
+                o.frequency.exponentialRampToValueAtTime(180, t + 0.22);
+                dur = 0.24;
             } else if (kind === 'pizza') {  // wobbly descending flap
                 o.type = 'triangle';
                 o.frequency.setValueAtTime(700, t);
@@ -2654,6 +2671,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             gl.bindTexture(gl.TEXTURE_2D, noiseTex);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             paintPing = dst;
+            updateReflections(painting, time, dt);
             nowRaf = requestAnimationFrame(nowCursorFrame);
         }
 
@@ -2739,11 +2757,61 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             worms = [];
         }
 
+        // ===== Reflection wobble: the page is the surface of the water =====
+        // Elements near a disturbance shiver briefly, like reflections on water
+        // or oil, then settle back exactly where they were.
+        let reflectEls = [];
+
+        function cacheReflectables() {
+            clearReflectables();
+            if (reducedFx) return;
+            reflectEls = [...document.querySelectorAll(
+                '.wordart, .now-index, .app-titlebar h2, .dl-header h2, .now-tagline, .now-url, .now-get, .now-worm, .now-consent, .copyright'
+            )].map(el => ({
+                el,
+                origInline: el.style.transform,
+                matrix: getComputedStyle(el).transform,
+                amp: 0,
+                phase: Math.random() * 6.28
+            }));
+        }
+
+        function clearReflectables() {
+            for (const r of reflectEls) r.el.style.transform = r.origInline;
+            reflectEls = [];
+        }
+
+        function updateReflections(painting, time, dt) {
+            if (!reflectEls.length) return;
+            const mx = nowMouse[0], myTop = innerHeight - nowMouse[1];
+            for (const r of reflectEls) {
+                if (painting > 0) {
+                    const b = r.el.getBoundingClientRect();
+                    const ddx = Math.max(b.left - mx, 0, mx - b.right);
+                    const ddy = Math.max(b.top - myTop, 0, myTop - b.bottom);
+                    const dist = Math.hypot(ddx, ddy);
+                    if (dist < 170) r.amp = Math.max(r.amp, Math.min(1, 1 - dist / 170));
+                }
+                if (r.amp > 0.012) {
+                    const ph = time * 5 + r.phase;
+                    r.el.style.transform = (r.matrix !== 'none' ? r.matrix + ' ' : '')
+                        + 'translate(' + (Math.sin(ph) * 5 * r.amp).toFixed(2) + 'px,'
+                        + (Math.cos(ph * 0.83) * 3.5 * r.amp).toFixed(2) + 'px)'
+                        + ' skewX(' + (Math.sin(ph * 0.7) * 1.8 * r.amp).toFixed(2) + 'deg)';
+                    r.amp *= Math.exp(-dt / 1.5); // the water remembers, briefly
+                } else if (r.amp > 0) {
+                    r.amp = 0;
+                    r.el.style.transform = r.origInline;
+                }
+            }
+        }
+
         function toggleEra() {
             const on = document.body.classList.toggle('now');
             eraBtn.textContent = on ? '🕰 take me back to 1998' : '✨ time travel to 2026';
             if (window.__setVectorEra) window.__setVectorEra(on);
-            if (on) spawnWorms(); else removeWorms();
+            if (on) { spawnWorms(); cacheReflectables(); }
+            else { clearReflectables(); removeWorms(); }
             if (on) {
                 if (!nowGl) {
                     nowGl = nowCursorInit();
@@ -2908,7 +2976,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             const FLUORO = ['#ffff00', '#39ff14', '#00e5ff', '#ff6ec7', '#ff9500', '#ff2079', '#a3ff00'];
             const dprNow = () => Math.min(window.devicePixelRatio || 1, 2);
 
-            function spawnLlama(speed, size, px, py) {
+            function spawnLlama(speed, size, px, py, laserBaby) {
                 const neckScale = 1 + Math.random() * 7; // neck length: 1x to 8x
                 const el = buildLlamaCanvas(neckScale);
                 el.className = 'llama-sprite';
@@ -2929,6 +2997,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     fluoro: FLUORO[Math.floor(Math.random() * FLUORO.length)],
                     ang3d: Math.random() * 6.28,
                     rotSpd: 0.6 + Math.random() * 0.9,
+                    gone: false,
+                    newGen: vecEra, // born in 2026: may morph, may fall in love
+                    morphTarget: null, morphFrom: null, morphT: 0, morphSpeed: 0,
+                    follow: null, followCd: 5 + Math.random() * 9,
                     w, h,
                     // spawn centred on the given point (clamped on-screen), else random
                     x: px !== undefined
@@ -2938,8 +3010,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                         ? Math.min(Math.max(0, py - h / 2), Math.max(0, innerHeight - h))
                         : Math.random() * Math.max(1, innerHeight - h),
                     vx, vy,
-                    type: Math.random() < 0.25
-                        ? 'exploder'
+                    type: laserBaby ? 'laser'
+                        : Math.random() < 0.25 ? 'exploder'
                         : AMMO_KINDS[Math.floor(Math.random() * AMMO_KINDS.length)],
                     cooldown: 2 + Math.random() * 3,
                     // 10% are catherine wheels: they spin as they roam
@@ -2959,6 +3031,22 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             }
 
             function fireShot(l) {
+                if (l.type === 'laser') {
+                    const beam = document.createElement('span');
+                    beam.className = 'llama-laser';
+                    document.body.appendChild(beam);
+                    const bdir = l.vx < 0 ? -1 : 1;
+                    shots.push({
+                        el: beam, kind: 'laser', owner: l,
+                        x: l.x + (bdir < 0 ? 0 : l.w),
+                        y: l.y + l.h * 0.15,
+                        vx: bdir * 380,
+                        vy: (Math.random() - 0.5) * 30,
+                        spin: 0, wob: 0
+                    });
+                    sfxShot('laser');
+                    return;
+                }
                 const s = document.createElement('span');
                 s.className = 'llama-shot';
                 s.textContent = AMMO[l.type];
@@ -2990,7 +3078,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 s.style.fontSize = (6 + Math.random() * 14) + 'px';
                 const ang = Math.random() * Math.PI * 2;
                 const dist = reach * (0.25 + Math.random() * 0.75);
-                const life = 0.7 + Math.random() * 0.8;
+                const life = 2 + Math.random() * 2.6; // debris takes its time
                 s.style.setProperty('--tx', Math.cos(ang) * dist + 'px');
                 s.style.setProperty('--ty', Math.sin(ang) * dist + 'px');
                 s.style.setProperty('--rot', Math.round((Math.random() - 0.5) * 1440) + 'deg');
@@ -3000,10 +3088,22 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 setTimeout(() => s.remove(), life * 1000 + 100);
             }
 
+            function spawnRing(cx, cy, delay) {
+                setTimeout(() => {
+                    const ring = document.createElement('div');
+                    ring.className = 'boom-ring';
+                    ring.style.left = cx + 'px';
+                    ring.style.top = cy + 'px';
+                    document.body.appendChild(ring);
+                    setTimeout(() => ring.remove(), 3400);
+                }, delay);
+            }
+
             function explodeLlama(l) {
                 const i = llamas.indexOf(l);
                 if (i === -1) return;
                 llamas.splice(i, 1);
+                l.gone = true;
                 l.el.remove();
                 const cx = l.x + l.w / 2, cy = l.y + l.h / 2;
                 sfxExplode();
@@ -3015,19 +3115,16 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 boom.style.left = l.x + 'px';
                 boom.style.top = l.y + 'px';
                 document.body.appendChild(boom);
-                setTimeout(() => boom.remove(), 750);
-                // white flash
+                setTimeout(() => boom.remove(), 2700);
+                // gentle white flash
                 const flash = document.createElement('div');
                 flash.className = 'boom-flash';
                 document.body.appendChild(flash);
-                setTimeout(() => flash.remove(), 300);
-                // shockwave ring
-                const ring = document.createElement('div');
-                ring.className = 'boom-ring';
-                ring.style.left = cx + 'px';
-                ring.style.top = cy + 'px';
-                document.body.appendChild(ring);
-                setTimeout(() => ring.remove(), 700);
+                setTimeout(() => flash.remove(), 1000);
+                // shockwaves: staggered, unhurried, screen-wide
+                spawnRing(cx, cy, 0);
+                spawnRing(cx, cy, 400);
+                spawnRing(cx, cy, 850);
                 // debris to every corner of the screen, Llamatron-style
                 const reach = Math.max(innerWidth, innerHeight);
                 for (let j = 0; j < 40; j++) spawnDebris(cx, cy, reach);
@@ -3151,7 +3248,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 asteroids.splice(i, 1);
                 a.el.remove();
                 sfxPop();
-                for (let j = 0; j < 10; j++) spawnDebris(a.x + a.R, a.y + a.R, 220);
+                spawnRing(a.x + a.R, a.y + a.R, 0);
+                spawnRing(a.x + a.R, a.y + a.R, 450);
+                const reach = Math.max(innerWidth, innerHeight) * 0.55;
+                for (let j = 0; j < 16; j++) spawnDebris(a.x + a.R, a.y + a.R, reach);
             }
 
             // Missile Command send-off: expanding flickering disc, then gone.
@@ -3201,6 +3301,72 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 seg([18, 14 + extra, 1.8], [18, 19 + extra, 1.8]);
                 seg([19, 10 + extra, 0], [20.5, 8 + extra, 0]);         // tail
                 return { verts, edges, w: 22, h: rows + extra };
+            }
+
+            // Morph targets share the llama's exact topology (3 boxes, 7 segments,
+            // 38 vertices) so a llama can slide vertex-by-vertex into another
+            // animal. Specs live in a canonical 22x20 space and are stretched to
+            // the llama's own height, long necks included.
+            const MORPH_ANIMALS = ['pig', 'giraffe', 'duck', 'llama'];
+            const CREATURE_SPECS = {
+                llama: {
+                    boxes: [[0, 7, 1, 6, 2.5], [4, 7, 6, 10, 1.5], [7, 19, 10, 14, 2.5]],
+                    segs: [
+                        [[2, 1, 0], [2, -1, 0]], [[5, 1, 0], [5, -1, 0]],
+                        [[8.5, 14, -1.8], [8.5, 19, -1.8]], [[9.5, 14, 1.8], [9.5, 19, 1.8]],
+                        [[17, 14, -1.8], [17, 19, -1.8]], [[18, 14, 1.8], [18, 19, 1.8]],
+                        [[19, 10, 0], [20.5, 8, 0]]
+                    ]
+                },
+                pig: {
+                    boxes: [[0, 6, 8, 13, 2.5], [5, 8, 9, 13, 2], [6, 20, 8, 16, 3.2]],
+                    segs: [
+                        [[1.5, 8, 0], [1, 6.5, 0]], [[4.5, 8, 0], [5, 6.5, 0]],
+                        [[8, 16, -2], [8, 19, -2]], [[9.5, 16, 2], [9.5, 19, 2]],
+                        [[17, 16, -2], [17, 19, -2]], [[18.5, 16, 2], [18.5, 19, 2]],
+                        [[20, 9, 0], [21.5, 7.5, 0]]
+                    ]
+                },
+                giraffe: {
+                    boxes: [[0, 4, 0, 3, 1.5], [2.5, 5, 3, 13, 1.1], [5, 17, 13, 16.5, 2.2]],
+                    segs: [
+                        [[1, 0, 0], [0.8, -1.6, 0]], [[3, 0, 0], [3.2, -1.6, 0]],
+                        [[6.5, 16.5, -1.6], [6.5, 20, -1.6]], [[8, 16.5, 1.6], [8, 20, 1.6]],
+                        [[14.5, 16.5, -1.6], [14.5, 20, -1.6]], [[16, 16.5, 1.6], [16, 20, 1.6]],
+                        [[17, 13.5, 0], [19, 15.5, 0]]
+                    ]
+                },
+                duck: {
+                    boxes: [[0, 5, 2, 6, 2], [3.5, 6.5, 6, 10, 1.3], [4, 18, 10, 16, 3]],
+                    segs: [
+                        [[0, 3.5, 0], [-2.2, 4.2, 0]], [[0, 5, 0], [-2.2, 4.6, 0]],
+                        [[9, 16, -1], [9, 19, -1]], [[11, 16, 1], [11, 19, 1]],
+                        [[10, 17, 0], [10, 17, 0]], [[10.5, 17, 0], [10.5, 17, 0]],
+                        [[18, 11, 0], [20.5, 9, 0]]
+                    ]
+                }
+            };
+
+            function creatureModel(kind, H) {
+                const spec = CREATURE_SPECS[kind];
+                const verts = [], edges = [];
+                function box(x0, x1, y0, y1, hz) {
+                    const b = verts.length;
+                    for (const x of [x0, x1]) for (const y of [y0, y1]) for (const z of [-hz, hz]) verts.push([x, y, z]);
+                    for (const [i, j] of [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]]) {
+                        edges.push([b + i, b + j]);
+                    }
+                }
+                function seg(a, b) {
+                    const s = verts.length;
+                    verts.push(a.slice(), b.slice());
+                    edges.push([s, s + 1]);
+                }
+                for (const b of spec.boxes) box(b[0], b[1], b[2], b[3], b[4]);
+                for (const s of spec.segs) seg(s[0], s[1]);
+                const k = H / 20;
+                for (const v of verts) v[1] *= k;
+                return { verts, edges, w: 22, h: H };
             }
 
             function drawWire(ctx, model, ang, cw, ch, lw, colour) {
@@ -3365,9 +3531,70 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
             let last = performance.now();
             function step(now) {
-                const dt = Math.min((now - last) / 1000, 0.05);
+                let dt = Math.min((now - last) / 1000, 0.05);
                 last = now;
-                for (const l of llamas) {
+                if (vecEra) dt *= 0.55; // 2026 runs on chill time
+                for (const l of llamas.slice()) {
+                    if (l.gone) continue;
+                    // ----- 2026 social dynamics: attraction, and its consequences -----
+                    if (vecEra && l.newGen) {
+                        if (l.follow && l.follow.gone) l.follow = null;
+                        l.followCd -= dt;
+                        if (!l.follow && l.followCd <= 0) {
+                            l.followCd = 6 + Math.random() * 9;
+                            if (llamas.length > 1 && Math.random() < 0.4) {
+                                const others = llamas.filter(o => o !== l && !o.gone);
+                                if (others.length) l.follow = others[Math.floor(Math.random() * others.length)];
+                            }
+                        }
+                        if (l.follow) {
+                            const f = l.follow;
+                            const fdx = f.x + f.w / 2 - (l.x + l.w / 2);
+                            const fdy = f.y + f.h / 2 - (l.y + l.h / 2);
+                            const fm = Math.hypot(fdx, fdy) || 1;
+                            const ease = Math.min(1, dt * 1.2); // gentle pursuit; nobody hurries
+                            l.vx += (fdx / fm * l.speed - l.vx) * ease;
+                            l.vy += (fdy / fm * l.speed - l.vy) * ease;
+                            if (fm < (Math.min(l.w, l.h) + Math.min(f.w, f.h)) * 0.3) {
+                                l.follow = null;
+                                l.followCd = 8 + Math.random() * 8;
+                                if (Math.random() < 0.3) {
+                                    explodeLlama(l);
+                                    continue;
+                                }
+                                // 70%: romance. 1-6 babies, armed with red lasers.
+                                const brood = 1 + Math.floor(Math.random() * 6);
+                                const bx = l.x + l.w / 2, by = l.y + l.h / 2;
+                                sfxPop();
+                                for (let bi = 0; bi < brood && llamas.length < MAX_LLAMAS; bi++) {
+                                    spawnLlama(l.speed * 0.9, Math.max(0.35, l.size * 0.45),
+                                        bx + (Math.random() - 0.5) * 80, by + (Math.random() - 0.5) * 80, true);
+                                }
+                                for (let bi = 0; bi < 10; bi++) spawnDebris(bx, by, 140);
+                            }
+                        }
+                        // ----- some of the new generation are becoming other animals -----
+                        if (l.vecModel) {
+                            if (!l.morphTarget && Math.random() < dt * 0.05) {
+                                const kind = MORPH_ANIMALS[Math.floor(Math.random() * MORPH_ANIMALS.length)];
+                                l.morphTarget = creatureModel(kind, l.vecModel.h).verts;
+                                l.morphFrom = l.vecModel.verts.map(v => v.slice());
+                                l.morphT = 0;
+                                l.morphSpeed = 0.07 + Math.random() * 0.06; // a slow becoming
+                            }
+                            if (l.morphTarget) {
+                                l.morphT = Math.min(1, l.morphT + l.morphSpeed * dt);
+                                const e = l.morphT * l.morphT * (3 - 2 * l.morphT);
+                                const mv = l.vecModel.verts;
+                                for (let vi = 0; vi < mv.length; vi++) {
+                                    for (let vk = 0; vk < 3; vk++) {
+                                        mv[vi][vk] = l.morphFrom[vi][vk] + (l.morphTarget[vi][vk] - l.morphFrom[vi][vk]) * e;
+                                    }
+                                }
+                                if (l.morphT >= 1) { l.morphTarget = null; l.morphFrom = null; }
+                            }
+                        }
+                    }
                     l.x += l.vx * dt;
                     l.y += l.vy * dt;
                     const maxX = Math.max(0, innerWidth - l.w);
@@ -3420,7 +3647,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                             if (bestD < a.R + Math.min(prey.w, prey.h) * 0.4) {
                                 // om nom: the llama is eaten, digestion begins
                                 const li = llamas.indexOf(prey);
-                                if (li !== -1) { llamas.splice(li, 1); prey.el.remove(); }
+                                if (li !== -1) { llamas.splice(li, 1); prey.gone = true; prey.el.remove(); }
                                 for (let j = 0; j < 8; j++) spawnDebris(prey.x + prey.w / 2, prey.y + prey.h / 2, 120);
                                 a.state = 'digest';
                                 a.timer = 2.5;
@@ -3458,20 +3685,31 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                         if (s.y <= 0) { s.y = 0; s.vy = Math.abs(s.vy) || 90; }
                         else if (s.y >= innerHeight - 20) { s.y = innerHeight - 20; s.vy = -Math.abs(s.vy); }
                     }
-                    let hitRoid = false;
+                    let hit = false;
                     for (const a of asteroids) {
                         if (a.state === 'digest') continue;
                         if (Math.hypot(s.x - (a.x + a.R), s.y - (a.y + a.R)) < a.R * 0.8 + 8) {
-                            hitRoid = true;
-                            if (a.invincible) {
+                            hit = true;
+                            if (a.invincible && s.kind !== 'laser') {
                                 for (let j = 0; j < 3; j++) spawnDebris(s.x, s.y, 60); // armour spark
                             } else {
-                                destroyAsteroid(a);
+                                destroyAsteroid(a); // lasers do not respect armour
                             }
                             break;
                         }
                     }
-                    if (hitRoid || s.x < -60 || s.x > innerWidth + 60 || s.y < -60 || s.y > innerHeight + 60) {
+                    if (!hit && s.kind === 'laser') {
+                        for (const l2 of llamas) {
+                            if (l2.type === 'laser' || l2 === s.owner) continue; // the lineage is laser-proof
+                            if (s.x > l2.x - 4 && s.x < l2.x + l2.w + 4 &&
+                                s.y > l2.y - 4 && s.y < l2.y + l2.h + 4) {
+                                hit = true;
+                                explodeLlama(l2);
+                                break;
+                            }
+                        }
+                    }
+                    if (hit || s.x < -60 || s.x > innerWidth + 60 || s.y < -60 || s.y > innerHeight + 60) {
                         s.el.remove();
                         shots.splice(i, 1);
                     } else {
