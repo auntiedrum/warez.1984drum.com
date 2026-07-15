@@ -515,6 +515,18 @@
             font-weight: bold;
             margin-bottom: 1.5rem;
         }
+        .bsod-btn {
+            background: #aaaaaa;
+            color: #0000aa;
+            border: none;
+            font-family: 'Lucida Console', 'Courier New', monospace;
+            font-size: inherit;
+            font-weight: bold;
+            padding: 2px 14px;
+            cursor: pointer;
+        }
+        .bsod-btn:hover { background: #ffffff; }
+        .bsod-hint { font-size: 0.85em; color: #ccccff; }
 
         /* ============ ASSISTANT ============ */
         .assistant {
@@ -2073,7 +2085,9 @@ Technical information:
 *** STOP: 0x000000GB (0x0000TEA5, 0xCRUMPET5, 0x5C0NE5, 0x10RRY)
 
 Beginning dump of physical memory...
-Rebooting in American...</div>
+Rebooting in American...
+
+<button class="bsod-btn" id="bsod-reboot">[ REBOOT ]</button> <span class="bsod-hint blink">or wait: the system reboots itself when it feels ready</span></div>
 
     <!-- Footer Area -->
     <footer>
@@ -2953,7 +2967,11 @@ Rebooting in American...</div>
             const wasPlaying = midiPlaying;
             if (wasPlaying) midiStop(); // a real crash takes the sound card with it
             bsod.style.display = 'block';
-            setTimeout(() => {
+            let rebooted = false;
+            function reboot() {
+                if (rebooted) return;
+                rebooted = true;
+                clearTimeout(fallback);
                 bsod.style.display = 'none';
                 document.getElementById('assistant-bubble').textContent = 'Sorry, I can only be me.';
                 const flag = document.getElementById('lang-flag');
@@ -2961,7 +2979,10 @@ Rebooting in American...</div>
                 flag.title = 'Language selection permanently unavailable';
                 document.getElementById('lang-label').textContent = 'EN-US 4EVER';
                 if (wasPlaying) midiStart();
-            }, 3000);
+            }
+            // it stays until the user reboots — or reboots itself after 10s
+            const fallback = setTimeout(reboot, 10000);
+            document.getElementById('bsod-reboot').onclick = reboot;
         }
 
         // ===== NOW / THEN: one button, twenty-eight years =====
@@ -4009,15 +4030,23 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             const worldW = () => document.documentElement.clientWidth;
             const worldH = () => Math.max(innerHeight, footerEl.offsetTop + footerEl.offsetHeight);
 
-            function spawnLlama(speed, size, px, py, laserBaby) {
+            function spawnLlama(speed, size, px, py, laserBaby, forceFront) {
+                speed = speed * (0.75 + Math.random() * 0.5); // nobody travels at exactly herd pace
+                if (!laserBaby && Math.random() < 0.12) size *= 2 + Math.random() * 2; // the occasional colossus
+                size = Math.min(size, 4);
                 const neckScale = 1 + Math.random() * 7; // neck length: 1x to 8x
                 const el = buildLlamaCanvas(neckScale);
                 el.className = 'llama-sprite';
+                // every llama cycles the rainbow at its own tempo, from its own hue
+                const cyc = 2 + Math.random() * 6;
+                el.style.animationDuration = cyc.toFixed(2) + 's';
+                el.style.animationDelay = (-Math.random() * cyc).toFixed(2) + 's';
                 const w = el.width * SCALE * size, h = el.height * SCALE * size;
                 el.style.width = Math.round(w) + 'px';
                 el.style.height = Math.round(h) + 'px';
-                // some llamas roam in front of the windows, most stay behind
-                const front = Math.random() < 0.35;
+                // some llamas roam in front of the windows, most stay behind —
+                // and offspring inherit their parent's side of the glass
+                const front = forceFront !== undefined ? forceFront : Math.random() < 0.35;
                 el.style.zIndex = front ? 45 : -1;
                 document.body.appendChild(el);
                 const ang = Math.random() * Math.PI * 2;
@@ -4049,7 +4078,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     cooldown: 2 + Math.random() * 3,
                     // 10% are catherine wheels: they spin as they roam
                     wheel: !reduced && Math.random() < 0.1,
-                    spin: 0
+                    spin: 0,
+                    // others rock gently back and forth as they drift
+                    rocker: !reduced && Math.random() < 0.35,
+                    rockPhase: Math.random() * 6.28,
+                    rockSpeed: 0.4 + Math.random() * 0.9,
+                    rockAmp: 8 + Math.random() * 15
                 };
                 llamas.push(l);
                 if (vecEra) swapLlamaEl(l, true);
@@ -4059,8 +4093,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
             function placeLlama(l) {
                 // sprite faces left; flip to face the direction of travel
-                l.el.style.transform = 'translate(' + l.x + 'px,' + l.y + 'px) scaleX(' + (l.vx < 0 ? 1 : -1) + ')'
-                    + (l.wheel ? ' rotate(' + Math.round(l.spin) + 'deg)' : '');
+                let rot = '';
+                if (l.wheel) rot = ' rotate(' + Math.round(l.spin) + 'deg)';
+                else if (l.rocker) rot = ' rotate(' + (Math.sin(l.rockPhase) * l.rockAmp).toFixed(1) + 'deg)';
+                l.el.style.transform = 'translate(' + l.x + 'px,' + l.y + 'px) scaleX(' + (l.vx < 0 ? 1 : -1) + ')' + rot;
             }
 
             function fireShot(l) {
@@ -4203,7 +4239,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     if (ex >= l.x - slop && ex <= l.x + l.w + slop &&
                         ey >= l.y - slop && ey <= l.y + l.h + slop) {
                         if (llamas.length < MAX_LLAMAS) {
-                            spawnLlama(l.speed * 1.02, l.size * (Math.random() < 0.5 ? 1.05 : 0.95), ex, ey);
+                            spawnLlama(l.speed * 1.02, l.size * (Math.random() < 0.5 ? 1.05 : 0.95), ex, ey, false, l.front);
                         }
                         break;
                     }
@@ -4270,7 +4306,11 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
             function spawnAsteroid() {
                 const invincible = Math.random() < 0.1;
-                const rPix = 9 + Math.random() * 8;
+                // most rocks are pebbles; a quarter are proper boulders
+                const rPix = Math.random() < 0.25 ? 22 + Math.random() * 38 : 9 + Math.random() * 8;
+                const slow = Math.min(1, 14 / rPix); // the big ones take their time
+                // 2026 wireframe shade: a range of greys, #cccccc down to black
+                const shade = Math.floor(Math.random() * 205);
                 const el = buildAsteroidCanvas(rPix, invincible);
                 el.className = 'roid';
                 const R = Math.round(rPix * 2.6);
@@ -4279,18 +4319,19 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 document.body.appendChild(el);
                 const edge = Math.floor(Math.random() * 4);
                 const a = {
-                    el, R, invincible,
+                    el, R, invincible, slow,
+                    wireCol: 'rgb(' + shade + ',' + shade + ',' + shade + ')',
                     pixEl: el, vecEl: null, vecCtx: null, vecModel: null,
                     x: edge === 0 ? -R * 2 : edge === 1 ? worldW() : Math.random() * worldW(),
                     y: edge === 2 ? -R * 2 : edge === 3 ? worldH() : Math.random() * worldH(),
-                    vx: (Math.random() - 0.5) * 60,
-                    vy: (Math.random() - 0.5) * 60,
+                    vx: (Math.random() - 0.5) * 60 * slow,
+                    vy: (Math.random() - 0.5) * 60 * slow,
                     spin: 0,
-                    spinRate: (Math.random() - 0.5) * 90,
+                    spinRate: (Math.random() - 0.5) * 90 * slow,
                     state: 'drift',
                     timer: 0
                 };
-                if (Math.abs(a.vx) < 15) a.vx = 20 * Math.sign(a.vx || 1);
+                if (Math.abs(a.vx) < 15 * slow) a.vx = 20 * slow * Math.sign(a.vx || 1);
                 a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px)';
                 asteroids.push(a);
                 if (vecEra) swapRoidEl(a, true);
@@ -4305,8 +4346,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 sfxPop();
                 if (vecEra && a.vecModel) {
                     const rx = a.x + a.R, ry = a.y + a.R;
-                    vecShatter(projectRoidSegs(a), rx, ry, a.invincible ? '#ff2079' : '#000000', 1.4);
-                    vecSparks(rx, ry, '#000000', 8);
+                    vecShatter(projectRoidSegs(a), rx, ry, a.invincible ? '#ff2079' : a.wireCol, 1.4);
+                    vecSparks(rx, ry, a.wireCol, 8);
                     vecRing(rx, ry, 0, '#000000', Math.max(innerWidth, innerHeight) * 0.4);
                     vecRing(rx, ry, 0.5, '#000000', Math.max(innerWidth, innerHeight) * 0.4);
                     return;
@@ -4533,7 +4574,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 const ctx = a.vecCtx, S = a.vecEl.width / 2;
                 const k = S / a.R; // device-pixel scale
                 ctx.clearRect(0, 0, S * 2, S * 2);
-                ctx.strokeStyle = '#000000';
+                ctx.strokeStyle = a.wireCol; // each rock keeps its own grey
                 ctx.lineWidth = (a.state === 'digest'
                     ? 2 + Math.sin(performance.now() / 60) * 1.2   // chewing
                     : (a.invincible ? 2.6 : 1.3)) * k;             // armour reads as heavier line
@@ -4779,7 +4820,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                                 sfxPop();
                                 for (let bi = 0; bi < brood && llamas.length < MAX_LLAMAS; bi++) {
                                     spawnLlama(l.speed * 0.9, Math.max(0.35, l.size * 0.45),
-                                        bx + (Math.random() - 0.5) * 80, by + (Math.random() - 0.5) * 80, true);
+                                        bx + (Math.random() - 0.5) * 80, by + (Math.random() - 0.5) * 80, true, l.front);
                                 }
                                 for (let bi = 0; bi < 10; bi++) spawnDebris(bx, by, 140);
                             }
@@ -4816,6 +4857,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     else if (l.y >= maxY) { l.y = maxY; l.vy = -Math.abs(l.vy); }
                     if (l.wheel) {
                         l.spin = (l.spin + 540 * dt) % 360;
+                    } else if (l.rocker) {
+                        l.rockPhase += l.rockSpeed * dt;
                     }
                     placeLlama(l);
                     if (l.el === l.vecEl) { // wireframe showroom rotation
@@ -4853,8 +4896,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                             const dx = prey.x + prey.w / 2 - (a.x + a.R);
                             const dy = prey.y + prey.h / 2 - (a.y + a.R);
                             const m = Math.hypot(dx, dy) || 1;
-                            a.vx = dx / m * 95;
-                            a.vy = dy / m * 95;
+                            a.vx = dx / m * 95 * a.slow;
+                            a.vy = dy / m * 95 * a.slow;
                             if (bestD < a.R + Math.min(prey.w, prey.h) * 0.4) {
                                 // om nom: the llama is eaten, digestion begins
                                 const li = llamas.indexOf(prey);
