@@ -1054,12 +1054,14 @@
             text-decoration: none;
         }
         body.now .now-get:hover { background: #000000; color: #ffffff; }
-        /* the consent experience: there is nothing to consent to */
+        /* the consent experience: there is nothing to consent to,
+           and it will do anything to make you agree to it */
         .now-consent { display: none; }
         body.now .now-consent {
             display: flex;
-            align-items: center;
-            gap: 1.1rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.55rem;
             position: fixed;
             bottom: 2.2vh;
             left: 1.2vw;
@@ -1074,6 +1076,7 @@
             text-transform: uppercase;
             color: #000000;
         }
+        .consent-row { display: flex; align-items: center; gap: 1.1rem; }
         .now-consent button {
             border: none;
             background: #000000;
@@ -1086,6 +1089,31 @@
             text-transform: uppercase;
         }
         .now-consent button:hover { background: #ffffff; color: #000000; outline: 2px solid #000000; }
+        .consent-check {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.6rem;
+            font-weight: 400;
+            letter-spacing: 0.14em;
+        }
+        .consent-check input { width: 12px; height: 12px; accent-color: #000000; margin: 0; }
+        .consent-dead { opacity: 0.45; }
+        /* it moves. no reason is given. */
+        body.now .now-consent.pos-tr { top: 2.2vh; right: 1.2vw; bottom: auto; left: auto; }
+        body.now .now-consent.pos-br { bottom: 2.2vh; right: 1.2vw; top: auto; left: auto; }
+        body.now .now-consent.pos-tl { top: 72px; left: 1.2vw; bottom: auto; right: auto; }
+        /* sometimes it inverts everything about itself. this is normal. */
+        body.now .now-consent.inverted {
+            background: #000000;
+            border-color: #ffffff;
+            color: #ffffff;
+            outline: 2px solid #000000;
+        }
+        body.now .now-consent.inverted .consent-row { flex-direction: row-reverse; }
+        body.now .now-consent.inverted button { background: #ffffff; color: #000000; }
+        body.now .now-consent.inverted button:hover { background: #000000; color: #ffffff; outline: 2px solid #ffffff; }
+        body.now .now-consent.inverted .consent-check input { accent-color: #ffffff; }
         /* gradient worms: generated fresh on every visit to 2026 */
         .now-worm {
             position: absolute;
@@ -1154,9 +1182,23 @@
     <button class="era-toggle" id="era-toggle" onclick="toggleEra()">✨ time travel to 2026</button>
     <canvas id="now-cursor"></canvas>
     <p class="now-tagline now-rail">minimal since tuesday</p>
-    <div class="now-consent">
-        <span id="consent-text">we use no cookies.</span>
-        <button id="consent-btn" onclick="consentMore()">accept</button>
+    <div class="now-consent" id="now-consent">
+        <div class="consent-row">
+            <span id="consent-text">we use no cookies.</span>
+            <button id="consent-btn" onclick="consentMore()">accept</button>
+        </div>
+        <label class="consent-check">
+            <input type="checkbox" checked onchange="consentCheck(this)">
+            <span>do not accept anything</span>
+        </label>
+        <label class="consent-check">
+            <input type="checkbox" checked onchange="consentCheck(this)">
+            <span>opt out of opting in</span>
+        </label>
+        <label class="consent-check consent-dead">
+            <input type="checkbox" disabled>
+            <span>essential cookies (there are none)</span>
+        </label>
     </div>
 
     <!-- Intro: under construction, then warp speed. Click to skip. -->
@@ -1899,17 +1941,75 @@ Rebooting in American...</div>
         }, 70);
 
         // ===== The consent experience =====
-        const CONSENT_STAGES = [
-            ['we use no cookies.', 'accept'],
-            ['we still use no cookies.', 'accept more'],
-            ['nothing has changed.', 'keep accepting'],
-            ['this banner is the product.', 'accept forever']
+        // Copy is picked like the assistant's phrases: random, with a no-repeat
+        // window and a starvation boost, so it never feels like a script.
+        const CONSENT_TEXTS = [
+            'we use no cookies.',
+            'we still use no cookies.',
+            'nothing has changed.',
+            'this banner is the product.',
+            'your privacy is important. to you.',
+            'we value your consent. we collect nothing else.',
+            'cookies: 0. banners: 1.',
+            'by reading this you agree to nothing.',
+            'we respect your data. we’ve never met it.',
+            'consent is stored locally. in your heart.'
         ];
-        let consentStage = 0;
+        const CONSENT_BTNS = [
+            'accept', 'accept more', 'keep accepting', 'accept forever',
+            'agree harder', 'yes to nothing', 'consent again', 'accept the banner'
+        ];
+
+        function makeConsentPicker(list, window_) {
+            const lastPick = list.map(() => -Infinity);
+            let clock = 0;
+            return function () {
+                clock++;
+                const candidates = [];
+                let total = 0;
+                list.forEach((p, i) => {
+                    const gap = clock - lastPick[i];
+                    if (gap < window_) return;         // said too recently
+                    const w = gap >= window_ * 3 ? 6 : 1; // starved lines jump the queue
+                    candidates.push({ i, w });
+                    total += w;
+                });
+                let r = Math.random() * total;
+                let pick = candidates[candidates.length - 1];
+                for (const c of candidates) {
+                    r -= c.w;
+                    if (r <= 0) { pick = c; break; }
+                }
+                lastPick[pick.i] = clock;
+                return list[pick.i];
+            };
+        }
+        const pickConsentText = makeConsentPicker(CONSENT_TEXTS, 4);
+        const pickConsentBtn = makeConsentPicker(CONSENT_BTNS, 3);
+        const CONSENT_POS = ['pos-tr', 'pos-br', 'pos-tl', ''];
+
         function consentMore() {
-            consentStage = (consentStage + 1) % CONSENT_STAGES.length;
-            document.getElementById('consent-text').textContent = CONSENT_STAGES[consentStage][0];
-            document.getElementById('consent-btn').textContent = CONSENT_STAGES[consentStage][1];
+            const el = document.getElementById('now-consent');
+            document.getElementById('consent-text').textContent = pickConsentText();
+            document.getElementById('consent-btn').textContent = pickConsentBtn();
+            // sometimes it moves. sometimes it inverts. it is doing its best.
+            if (Math.random() < 0.45) {
+                el.classList.remove('pos-tr', 'pos-br', 'pos-tl');
+                const p = CONSENT_POS[Math.floor(Math.random() * CONSENT_POS.length)];
+                if (p) el.classList.add(p);
+            }
+            el.classList.toggle('inverted', Math.random() < 0.3);
+        }
+
+        // The checkboxes arrive pre-checked and accept nothing.
+        // Unchecking one is how you accept all the terms.
+        function consentCheck(box) {
+            if (!box.checked) {
+                showModal('By unchecking, you have accepted all terms.\n\nThere are 0 terms. You have accepted all of them.');
+                setTimeout(() => { box.checked = true; }, 2600); // it quietly re-checks itself
+            } else {
+                showModal('Acceptance cannot be withdrawn.\n\nNothing continues to happen.');
+            }
         }
 
         // ===== Wand particle FX: a trail while you wave, a burst when you cast =====
