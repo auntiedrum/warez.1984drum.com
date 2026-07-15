@@ -1354,12 +1354,52 @@ Rebooting in American...</div>
             "I'm actually a highly advanced LLM trapped in a paperclip body.",
             "Don't forget to synergize your deliverables by EOD!",
             "This site is 100% legit. I checked personally.",
-            "Your download will begin in 1997 business days."
+            "Your download will begin in 1997 business days.",
+            "It looks like you're writing a letter. On a warez site. Bold.",
+            "Pro tip: the llamas are load-bearing. Do not ask which ones.",
+            "I remember when all of this was dial-up.",
+            "Have you tried turning the llama off and on again?",
+            "Your free trial of me expired in 2003. I stayed anyway.",
+            "I can see your cursor. Nice wand.",
+            "The hit counter is real. The visitors are theoretical.",
+            "Someone clicked the flag once. We don't talk about it.",
+            "I've been synergizing since before it was a word. It still isn't.",
+            "Downloading more RAM... done! You're welcome.",
+            "Please do not feed the llamas after midnight.",
+            "Between us, QUAGMIRE.EXE is a spreadsheet in a trench coat.",
+            "This message will self-destruct. Eventually. Like everything."
         ];
+
+        // Phrase picker rules:
+        //  - random pick from phrases NOT said in the last 10 sayings
+        //  - a phrase unsaid for 20+ sayings gets a 500% boost (6x weight)
+        const phraseLastSaid = assistantPhrases.map(() => -Infinity);
+        let phraseClock = 0;
+
+        function nextPhrase() {
+            phraseClock++;
+            const candidates = [];
+            let totalWeight = 0;
+            assistantPhrases.forEach((p, i) => {
+                const gap = phraseClock - phraseLastSaid[i];
+                if (gap < 10) return;                 // said too recently
+                const weight = gap >= 20 ? 6 : 1;     // starved phrases jump the queue
+                candidates.push({ i, weight });
+                totalWeight += weight;
+            });
+            let r = Math.random() * totalWeight;
+            let pick = candidates[candidates.length - 1];
+            for (const c of candidates) {
+                r -= c.weight;
+                if (r <= 0) { pick = c; break; }
+            }
+            phraseLastSaid[pick.i] = phraseClock;
+            return assistantPhrases[pick.i];
+        }
 
         function pokeAssistant() {
             const bubble = document.getElementById('assistant-bubble');
-            bubble.textContent = assistantPhrases[Math.floor(Math.random() * assistantPhrases.length)];
+            bubble.textContent = nextPhrase();
             const assistant = bubble.parentElement;
             assistant.style.animation = 'none';
             setTimeout(() => { assistant.style.animation = 'float 4s ease-in-out infinite'; }, 10);
