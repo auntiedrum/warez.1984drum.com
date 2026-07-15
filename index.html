@@ -199,11 +199,11 @@
             letter-spacing: 0.1em;
         }
 
+        /* Liquid layout: the page pours itself into whatever window it's given */
         header {
             width: 100%;
-            max-width: 1152px;
             margin: 0 auto;
-            padding: 2rem 1rem;
+            padding: 2rem 4vw;
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -230,12 +230,11 @@
 
         main {
             width: 100%;
-            max-width: 1152px;
             margin: 0 auto;
-            padding: 1rem;
+            padding: 1rem 3vw;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
-            gap: 2rem;
+            gap: clamp(1.25rem, 2.5vw, 3rem);
             align-items: start;
         }
 
@@ -555,10 +554,9 @@
         /* ============ FOOTER ============ */
         footer {
             width: 100%;
-            max-width: 1152px;
             margin: 0 auto;
             text-align: center;
-            padding: 2.5rem 1rem 7rem 1rem; /* bottom clearance for the assistant */
+            padding: 2.5rem 4vw 7rem; /* bottom clearance for the assistant */
         }
         .badge-row {
             display: flex;
@@ -766,24 +764,6 @@
             50% { filter: hue-rotate(130deg) brightness(1.35); }
         }
 
-        .ink-spot {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: var(--w, 4px);
-            height: var(--w, 4px);
-            background: #000000;
-            z-index: 46;
-            pointer-events: none;
-            animation: ink-life var(--life, 2.5s) linear forwards;
-        }
-        @keyframes ink-life {
-            0%   { transform: translate(0, 0); opacity: 1; height: var(--w, 4px); }
-            12%  { transform: translate(var(--tx, 0px), var(--ty, 0px)); height: var(--w, 4px); }
-            55%  { transform: translate(var(--tx, 0px), var(--ty, 0px)); height: calc(var(--w, 4px) * 7); opacity: 0.9; }
-            100% { transform: translate(var(--tx, 0px), calc(var(--ty, 0px) + 50px)); height: calc(var(--w, 4px) * 4); opacity: 0; }
-        }
-
         .boom-flash {
             position: fixed;
             inset: 0;
@@ -845,12 +825,145 @@
             }
         }
 
+        /* ============ NOW / THEN ============ */
+        /* The toggle itself: pure 2026 growth-hacker energy, deliberately
+           clashing with everything around it. Desktop only. */
+        .era-toggle {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 90;
+            border: none;
+            border-radius: 999px;
+            padding: 11px 22px;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #ffffff;
+            background: linear-gradient(100deg, #ff00cc, #7b2ff7, #00e0ff);
+            background-size: 220% 220%;
+            box-shadow: 0 4px 24px rgba(255, 0, 204, 0.55);
+            animation: era-sheen 3s ease-in-out infinite;
+            transition: transform 0.2s;
+        }
+        .era-toggle:hover { transform: scale(1.07); }
+        @keyframes era-sheen {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        @media (min-width: 768px) { .era-toggle { display: block; } }
+
+        /* NOW mode: black and white, giant type, almost no information,
+           whitespace as a personality trait. */
+        body.now {
+            background: #ffffff;
+            background-image: none;
+            color: #000000;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        body.now, body.now * { cursor: none !important; } /* the shader is the cursor now */
+        body.now .era-toggle {
+            background: #000000;
+            box-shadow: none;
+            animation: none;
+        }
+        body.now .marquee-bar, body.now .hazard-tape, body.now .tagline,
+        body.now .construction, body.now .midi-deck, body.now .assistant,
+        body.now .win95-header, body.now .app-footer, body.now .app-link,
+        body.now .pitch-quote, body.now .retro-table, body.now .scroll-panel,
+        body.now .dos-panel, body.now .testimonials, body.now .pig-live,
+        body.now .subhead, body.now .boxed-copy, body.now .dl-header .ver,
+        body.now .app-titlebar .spin-3d, body.now .app-titlebar .fine-print,
+        body.now .badge-row, body.now .hit-counter-box, body.now .webring { display: none; }
+
+        .now-tagline { display: none; }
+        body.now .now-tagline {
+            display: block;
+            font-size: clamp(0.75rem, 1vw, 1.1rem);
+            font-weight: 400;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: #777777;
+            margin: 5vh 0 0 0;
+        }
+
+        body.now header {
+            padding: 26vh 8vw 16vh;
+            gap: 0;
+        }
+        body.now .wordart {
+            animation: none;
+            transform: none;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-style: normal;
+            font-size: clamp(4rem, 13vw, 16rem);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 0.95;
+            color: #000000;
+            text-shadow: none;
+        }
+        body.now main {
+            grid-template-columns: 1fr;
+            gap: 34vh;
+            padding: 10vh 8vw 22vh;
+        }
+        body.now .ants { padding: 0; background: none; animation: none; }
+        body.now .win95-window { background: transparent; border: none; box-shadow: none; }
+        body.now .app-body { padding: 0; }
+        body.now .app-titlebar, body.now .dl-header {
+            border: none;
+            background: none;
+            padding: 0;
+            margin: 0;
+            justify-content: flex-start;
+        }
+        body.now .app-titlebar h2, body.now .dl-header h2 {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: clamp(3.5rem, 9vw, 11rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            color: #000000;
+            background: none;
+            -webkit-background-clip: initial;
+            background-clip: initial;
+            animation: none;
+        }
+        body.now footer { padding: 10vh 8vw 24vh; }
+        body.now .copyright { color: #aaaaaa; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        /* the fauna stays, but joins the monochrome regime */
+        body.now .llama-sprite { animation: none; filter: grayscale(1) contrast(1.2); }
+        body.now .llama-shot, body.now .sparkle, body.now .llama-boom,
+        body.now .mc-blast, body.now .boom-ring { filter: grayscale(1); }
+        body.now .roid { animation: none !important; filter: grayscale(1) !important; }
+
+        /* Fullscreen shader overlay that follows the mouse in NOW mode.
+           Shadertoy-compatible: iResolution / iTime / iMouse are wired up. */
+        #now-cursor {
+            display: none;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 900;
+            pointer-events: none;
+        }
+        body.now #now-cursor { display: block; }
+
         @media (prefers-reduced-motion: reduce) {
-            .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant, .llama-sprite, .pig-vibrate { animation: none; }
+            .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant, .llama-sprite, .pig-vibrate, .era-toggle { animation: none; }
         }
     </style>
 </head>
 <body>
+
+    <!-- NOW / THEN era toggle (desktop only) -->
+    <button class="era-toggle" id="era-toggle" onclick="toggleEra()">✨ time travel to 2026</button>
+    <canvas id="now-cursor"></canvas>
 
     <!-- Intro: under construction, then warp speed. Click to skip. -->
     <div id="intro">
@@ -888,6 +1001,7 @@
         <p class="construction">
             [ Under Construction Since 1998 ] <span class="rainbow-text">▓▒░ FREE D/L 4 ALL ░▒▓</span>
         </p>
+        <p class="now-tagline">software. curated. est. 1998.</p>
     </header>
 
     <!-- Main Content -->
@@ -909,6 +1023,8 @@
                         <a href="#" class="app-link" onclick="showModal('Navigating to unsunkwords.com... \n\nError 404: Synergy overload.'); return false;">unsunkwords.com</a>
                     </div>
                 </div>
+
+                <p class="now-tagline">words. reimagined.</p>
 
                 <p class="pitch-quote">
                     "Synergising lexical retrieval through non-linear vertical spatial grids to disrupt the cognitive stagnation landscape."
@@ -985,6 +1101,8 @@
                         v 1.0.42
                     </div>
                 </div>
+
+                <p class="now-tagline">loudness. perfected.</p>
 
                 <h3 class="subhead comic-sans" style="margin-top:1rem;">
                     Disrupting the Loudness War 🔥
@@ -1066,6 +1184,8 @@
                         v 1.2.4
                     </div>
                 </div>
+
+                <p class="now-tagline">touring. simplified.</p>
 
                 <h3 class="subhead comic-sans" style="margin-top:1rem;">
                     Organising the Unorganisable 🚐
@@ -1175,6 +1295,8 @@
                         <span class="fine-print" style="font-family:'Courier New',monospace; font-size:0.7rem; color:#555;">v 2.1.0</span>
                     </div>
                 </div>
+
+                <p class="now-tagline">gravity. optional.</p>
 
                 <p class="pitch-quote">
                     "Reconceptualising 2D spatial navigation by leveraging an opinionated, zero-cloud vector-redirection API."
@@ -1592,19 +1714,40 @@ Rebooting in American...</div>
             const t = ctx.currentTime;
             const o = ctx.createOscillator(), g = ctx.createGain();
             o.type = 'square';
+            let dur = 0.13;
             if (kind === 'coke') {          // fizzy up-chirp
                 o.frequency.setValueAtTime(350, t);
                 o.frequency.exponentialRampToValueAtTime(1300, t + 0.1);
+            } else if (kind === 'floppy') { // dot-matrix zip
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(1700, t);
+                o.frequency.exponentialRampToValueAtTime(2600, t + 0.05);
+                dur = 0.06;
+            } else if (kind === 'cd') {     // laser tray eject
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(2300, t);
+                o.frequency.exponentialRampToValueAtTime(240, t + 0.16);
+                dur = 0.17;
+            } else if (kind === 'pizza') {  // wobbly descending flap
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(700, t);
+                o.frequency.exponentialRampToValueAtTime(160, t + 0.18);
+                dur = 0.19;
+            } else if (kind === 'hotdog') { // mortar thoomp
+                o.type = 'sine';
+                o.frequency.setValueAtTime(300, t);
+                o.frequency.exponentialRampToValueAtTime(80, t + 0.14);
+                dur = 0.15;
             } else {                        // cheeseburger pew
                 o.frequency.setValueAtTime(950, t);
                 o.frequency.exponentialRampToValueAtTime(180, t + 0.12);
             }
-            g.gain.setValueAtTime(0.1, t);
-            g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+            g.gain.setValueAtTime(kind === 'hotdog' ? 0.18 : 0.1, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + dur);
             o.connect(g);
             g.connect(ctx.destination);
             o.start(t);
-            o.stop(t + 0.15);
+            o.stop(t + dur + 0.02);
         }
 
         function sfxPop() { // asteroid crunch
@@ -1890,6 +2033,98 @@ Rebooting in American...</div>
             }, 3000);
         }
 
+        // ===== NOW / THEN: one button, twenty-eight years =====
+        // NOW mode swaps the site for its inevitable 2026 rebrand and replaces
+        // the cursor with a fullscreen WebGL shader. The fragment source below
+        // is Shadertoy-compatible (iResolution / iTime / iMouse + mainImage),
+        // so a real Shadertoy can be pasted over the placeholder verbatim.
+        const NOW_CURSOR_SHADER = `
+// --- placeholder shader: replace with the real Shadertoy mainImage() ---
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 p = (fragCoord - iMouse.xy) / iResolution.y;
+    float d = length(p);
+    float pulse = 0.030 + 0.008 * sin(iTime * 4.0);
+    float ring = smoothstep(0.006, 0.0, abs(d - pulse));
+    float core = smoothstep(0.005, 0.0, d);
+    float v = clamp(ring + core, 0.0, 1.0);
+    fragColor = vec4(vec3(0.0), v); // monochrome era, monochrome cursor
+}`;
+
+        const eraBtn = document.getElementById('era-toggle');
+        const nowCanvas = document.getElementById('now-cursor');
+        const nowMouse = [innerWidth / 2, innerHeight / 2];
+        let nowGl = null, nowUniforms = null, nowRaf = null, nowT0 = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            nowMouse[0] = e.clientX;
+            nowMouse[1] = innerHeight - e.clientY; // Shadertoy origin is bottom-left
+        });
+
+        function nowCursorInit() {
+            const gl = nowCanvas.getContext('webgl', { alpha: true, premultipliedAlpha: true });
+            if (!gl) return null;
+            const vs = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vs, 'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }');
+            gl.compileShader(vs);
+            const fs = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fs,
+                'precision mediump float;\n' +
+                'uniform vec3 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n' +
+                NOW_CURSOR_SHADER + '\n' +
+                'void main() { vec4 c = vec4(0.0); mainImage(c, gl_FragCoord.xy); gl_FragColor = vec4(c.rgb * c.a, c.a); }');
+            gl.compileShader(fs);
+            if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+                console.error('now-cursor shader:', gl.getShaderInfoLog(fs));
+                return null;
+            }
+            const prog = gl.createProgram();
+            gl.attachShader(prog, vs);
+            gl.attachShader(prog, fs);
+            gl.linkProgram(prog);
+            gl.useProgram(prog);
+            const buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+            const loc = gl.getAttribLocation(prog, 'p');
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+            nowUniforms = {
+                res: gl.getUniformLocation(prog, 'iResolution'),
+                time: gl.getUniformLocation(prog, 'iTime'),
+                mouse: gl.getUniformLocation(prog, 'iMouse')
+            };
+            return gl;
+        }
+
+        function nowCursorFrame(t) {
+            if (!nowT0) nowT0 = t;
+            const gl = nowGl;
+            if (nowCanvas.width !== innerWidth || nowCanvas.height !== innerHeight) {
+                nowCanvas.width = innerWidth;
+                nowCanvas.height = innerHeight;
+                gl.viewport(0, 0, innerWidth, innerHeight);
+            }
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.uniform3f(nowUniforms.res, nowCanvas.width, nowCanvas.height, 1);
+            gl.uniform1f(nowUniforms.time, (t - nowT0) / 1000);
+            gl.uniform4f(nowUniforms.mouse, nowMouse[0], nowMouse[1], 0, 0);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            nowRaf = requestAnimationFrame(nowCursorFrame);
+        }
+
+        function toggleEra() {
+            const on = document.body.classList.toggle('now');
+            eraBtn.textContent = on ? '🕰 take me back to 1998' : '✨ time travel to 2026';
+            if (on) {
+                if (!nowGl) nowGl = nowCursorInit();
+                if (nowGl && !nowRaf) nowRaf = requestAnimationFrame(nowCursorFrame);
+            } else if (nowRaf) {
+                cancelAnimationFrame(nowRaf);
+                nowRaf = null;
+            }
+        }
+
         // ===== Intro: under construction (5s, click to skip) -> warp speed (~3s) -> page =====
         (function () {
             const intro = document.getElementById('intro');
@@ -1964,7 +2199,8 @@ Rebooting in American...</div>
 
         // ===== Llamatron llamas: bounce around the background like Arkanoid =====
         // ===== balls, cycling through the rainbow. Click one to breed it.   =====
-        // ===== Some shoot cheeseburgers, some shoot coke, some just explode. =====
+        // ===== Each llama spews one thing: burgers, coke, pizza, floppies,  =====
+        // ===== CDs or hotdogs — except the exploders, who are the payload.  =====
         (function () {
             const SPRITE = [
                 '......................',
@@ -2022,7 +2258,15 @@ Rebooting in American...</div>
                 return c;
             }
 
-            const AMMO = { burger: '🍔', coke: '🥤' };
+            const AMMO = {
+                burger: '🍔',   // the classic pew
+                coke: '🥤',     // fizzy up-chirp
+                pizza: '🍕',    // wobbles like a thrown frisbee that regrets it
+                floppy: '💾',   // 1.44MB of straight-line velocity
+                cd: '💿',       // spins, bounces off the top and bottom
+                hotdog: '🌭'    // lobbed in a lazy mortar arc
+            };
+            const AMMO_KINDS = Object.keys(AMMO);
             const llamas = [];
             const shots = [];
 
@@ -2052,12 +2296,13 @@ Rebooting in American...</div>
                         ? Math.min(Math.max(0, py - h / 2), Math.max(0, innerHeight - h))
                         : Math.random() * Math.max(1, innerHeight - h),
                     vx, vy,
-                    type: ['burger', 'coke', 'exploder'][Math.floor(Math.random() * 3)],
+                    type: Math.random() < 0.25
+                        ? 'exploder'
+                        : AMMO_KINDS[Math.floor(Math.random() * AMMO_KINDS.length)],
                     cooldown: 2 + Math.random() * 3,
-                    // 10% are catherine wheels: they spin and spray dripping ink
+                    // 10% are catherine wheels: they spin as they roam
                     wheel: !reduced && Math.random() < 0.1,
-                    spin: 0,
-                    inkCd: 0
+                    spin: 0
                 };
                 llamas.push(l);
                 placeLlama(l);
@@ -2070,25 +2315,6 @@ Rebooting in American...</div>
                     + (l.wheel ? ' rotate(' + Math.round(l.spin) + 'deg)' : '');
             }
 
-            let inkCount = 0;
-            function spawnInk(x, y) {
-                if (inkCount > 150) return; // don't drown the page
-                inkCount++;
-                const s = document.createElement('span');
-                s.className = 'ink-spot';
-                const wpx = 3 + Math.random() * 4;
-                const ang = Math.random() * Math.PI * 2;
-                const dist = 60 + Math.random() * 220;
-                const life = 2 + Math.random() * 1.5;
-                s.style.setProperty('--w', wpx.toFixed(1) + 'px');
-                s.style.setProperty('--tx', Math.cos(ang) * dist + 'px');
-                s.style.setProperty('--ty', Math.sin(ang) * dist + 'px');
-                s.style.setProperty('--life', life + 's');
-                s.style.translate = x + 'px ' + y + 'px';
-                document.body.appendChild(s);
-                setTimeout(() => { s.remove(); inkCount--; }, life * 1000 + 100);
-            }
-
             function fireShot(l) {
                 const s = document.createElement('span');
                 s.className = 'llama-shot';
@@ -2096,12 +2322,18 @@ Rebooting in American...</div>
                 s.style.fontSize = Math.round(16 * l.size) + 'px';
                 document.body.appendChild(s);
                 const dir = l.vx < 0 ? -1 : 1;
+                const speed = l.type === 'floppy' ? 540 : l.type === 'cd' ? 260 : 320;
                 shots.push({
                     el: s,
+                    kind: l.type,
                     x: l.x + (dir < 0 ? 0 : l.w),
                     y: l.y + l.h * 0.12, // from the head, wherever the neck put it
-                    vx: dir * 320,
-                    vy: (Math.random() - 0.5) * 80
+                    vx: dir * speed,
+                    vy: l.type === 'hotdog' ? -160 - Math.random() * 80
+                        : l.type === 'cd' ? (Math.random() - 0.5) * 300
+                        : (Math.random() - 0.5) * 80,
+                    spin: 0,
+                    wob: Math.random() * Math.PI * 2
                 });
                 sfxShot(l.type);
             }
@@ -2309,11 +2541,6 @@ Rebooting in American...</div>
                     else if (l.y >= maxY) { l.y = maxY; l.vy = -Math.abs(l.vy); }
                     if (l.wheel) {
                         l.spin = (l.spin + 540 * dt) % 360;
-                        l.inkCd -= dt;
-                        if (l.inkCd <= 0) {
-                            spawnInk(l.x + l.w / 2, l.y + l.h / 2);
-                            l.inkCd = 0.08;
-                        }
                     }
                     placeLlama(l);
                     if (l.type !== 'exploder') {
@@ -2371,8 +2598,17 @@ Rebooting in American...</div>
                 }
                 for (let i = shots.length - 1; i >= 0; i--) {
                     const s = shots[i];
+                    // per-snack ballistics
+                    if (s.kind === 'hotdog') s.vy += 380 * dt;                    // gravity claims the sausage
+                    else if (s.kind === 'pizza') s.vy = Math.sin(s.wob += 9 * dt) * 130; // aerodynamically cursed
+                    if (s.kind === 'cd') s.spin += 900 * dt;
+                    else if (s.kind === 'floppy') s.spin += 300 * dt;
                     s.x += s.vx * dt;
                     s.y += s.vy * dt;
+                    if (s.kind === 'cd') { // CDs ricochet off the letterbox
+                        if (s.y <= 0) { s.y = 0; s.vy = Math.abs(s.vy) || 90; }
+                        else if (s.y >= innerHeight - 20) { s.y = innerHeight - 20; s.vy = -Math.abs(s.vy); }
+                    }
                     let hitRoid = false;
                     for (const a of asteroids) {
                         if (a.state === 'digest') continue;
@@ -2390,7 +2626,8 @@ Rebooting in American...</div>
                         s.el.remove();
                         shots.splice(i, 1);
                     } else {
-                        s.el.style.transform = 'translate(' + s.x + 'px,' + s.y + 'px)';
+                        s.el.style.transform = 'translate(' + s.x + 'px,' + s.y + 'px)'
+                            + (s.spin ? ' rotate(' + Math.round(s.spin) + 'deg)' : '');
                     }
                 }
                 requestAnimationFrame(step);
