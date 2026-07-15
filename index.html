@@ -625,6 +625,36 @@
         .modal-ok-row { display: flex; justify-content: center; }
         .modal-ok-row .win95-button { width: 6rem; }
 
+        /* ============ THE MELTING EMAIL FIELD ============ */
+        #melt-wrap { margin: 0 0 1.25rem 0; }
+        #melt-email {
+            width: 100%;
+            padding: 0.7rem;
+            border: 2px solid #000000;
+            background: #ffffff;
+            color: #000000;
+            font-family: Arial, sans-serif;
+            font-size: 0.9rem;
+            transform-origin: 50% 0;
+        }
+        #melt-email.melting {
+            animation: field-melt 1.9s ease-in forwards;
+            pointer-events: none;
+        }
+        @keyframes field-melt {
+            0%   { transform: none; filter: none; opacity: 1; }
+            30%  { transform: scaleY(1.15) skewX(-2deg); filter: blur(0.5px); }
+            60%  { transform: scaleY(1.8) skewX(4deg) translateY(8px); filter: blur(2.5px); opacity: 0.8; }
+            100% { transform: scaleY(3.2) skewX(-7deg) translateY(30px); filter: blur(8px); opacity: 0; }
+        }
+        .melt-after {
+            font-family: Arial, sans-serif;
+            font-size: 0.75rem;
+            font-style: italic;
+            color: #666666;
+            margin: 0 0 1.25rem 0;
+        }
+
         /* ============ ANCIENT PIG LIVE FEED ============ */
         .pig-live {
             margin-top: 1rem;
@@ -1814,6 +1844,45 @@ Rebooting in American...</div>
 
         function closeModal() {
             modal.style.display = 'none';
+            const w = document.getElementById('melt-wrap');
+            if (w) w.remove();
+        }
+
+        // ===== Gratitude, unprompted =====
+        // After 20+ clicks, one of them is randomly interpreted as signing up
+        // to help. An email field is offered. It does not hold its shape.
+        let helpClicks = 0, helpShown = false;
+        document.addEventListener('click', () => {
+            helpClicks++;
+            if (!helpShown && helpClicks > 20 && Math.random() < 0.08) {
+                helpShown = true;
+                setTimeout(showSignupThanks, 600);
+            }
+        });
+
+        function showSignupThanks() {
+            showModal('Thank you for signing up to help.\n\nWe knew you would. Please confirm your email address below.');
+            const content = document.querySelector('#custom-modal .content');
+            const wrap = document.createElement('div');
+            wrap.id = 'melt-wrap';
+            wrap.innerHTML = '<input id="melt-email" type="email" placeholder="email address" autocomplete="off" spellcheck="false">';
+            content.insertBefore(wrap, content.querySelector('.modal-ok-row'));
+            const input = wrap.querySelector('input');
+            let melted = false;
+            function melt() {
+                if (melted) return;
+                melted = true;
+                input.readOnly = true;
+                input.classList.add('melting');
+                setTimeout(() => {
+                    if (wrap.isConnected) {
+                        wrap.innerHTML = '<p class="melt-after">the field could not hold its shape. thank you again.</p>';
+                    }
+                }, 1950);
+            }
+            input.addEventListener('input', melt); // one character is plenty
+            setTimeout(melt, 9000);                // it melts eventually regardless
+            setTimeout(() => input.focus(), 150);
         }
 
         // Close app logic (joke)
@@ -2476,7 +2545,7 @@ Rebooting in American...</div>
 const float speed = .02;
 const float scale = .15;
 const float falloff = 2.5;
-const float fade = .1;
+const float fade = .2;
 const float strength = .8;
 const float range = 4.;
 
@@ -2596,19 +2665,20 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     float slope = clamp(length(normal.xy) * 1.7, 0.0, 1.0);  // rim of the ripple
     float side = dot(normal, L);                             // lit side vs shade side
     float spec = pow(max(side, 0.0), 20.0);                  // sun glints
-    float mask = ss(0.004, 0.05, gray);
+    // soft, feathered presence: never fully opaque, eases in over a wide band
+    float mask = ss(0.003, 0.28, gray) * 0.9;
     vec3 tint = .5+.5*cos(vec3(1,2,3)+side*4.-uv.y*3.-3.);
 
     // With a snapshot of the page (iChannel2): true refraction. The water
     // bends the page itself, the way the original bent its checkerboard,
     // and the reflection is intact again once the water stills.
-    vec2 refr = normal.xy * 0.22 * gray;
+    vec2 refr = normal.xy * 0.16 * gray;
     vec3 page = texture(iChannel2, vec2(
         clamp(uv.x + refr.x, 0.001, 0.999),
         clamp(1.0 - (uv.y + refr.y), 0.001, 0.999))).rgb;
-    vec3 water = page * (0.93 + 0.14 * side * slope);
-    water = mix(water, vec3(1.0), spec * 0.5);
-    water += tint * slope * 0.09;
+    vec3 water = page * (0.965 + 0.07 * side * slope);
+    water = mix(water, vec3(1.0), spec * 0.25);
+    water += tint * slope * 0.04;
 
     // Without a snapshot: invisible-glass rim only
     vec3 rimCol = mix(vec3(0.05), vec3(1.0), clamp(side * 0.5 + 0.5, 0., 1.))
@@ -2619,7 +2689,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     float alpha = mix(rimAlpha, mask, uSnap);
 
     // Dither to prevent colour banding
-    colour -= dither.x*.06;
+    colour -= dither.x*.03;
     colour = clamp(colour, 0., 1.);
 
     // Crisp cursor dot: fixed pixel radius, hard edge, no pulse.
@@ -2877,6 +2947,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             paintPing = dst;
             updateReflections(painting, time, dt);
+            updateWorms(time);
             nowRaf = requestAnimationFrame(nowCursorFrame);
         }
 
@@ -2950,16 +3021,37 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 c.style.height = h + 'px';
                 c.style.left = (Math.random() * 80 - 5) + 'vw';
                 c.style.top = Math.round(docH * 0.04 + Math.random() * docH * 0.84) + 'px';
-                c.style.transform = 'rotate(' + Math.round((Math.random() - 0.5) * 50) + 'deg)';
+                const rot = Math.round((Math.random() - 0.5) * 50);
+                c.style.transform = 'rotate(' + rot + 'deg)';
                 drawWorm(c.getContext('2d'), c.width, c.height);
                 document.body.appendChild(c);
-                worms.push(c);
+                // each worm gets a slow private orbit: drift, sway, breathe
+                worms.push({
+                    el: c, rot,
+                    ax: 25 + Math.random() * 55,
+                    ay: 25 + Math.random() * 55,
+                    wx: 0.07 + Math.random() * 0.08,
+                    wy: 0.06 + Math.random() * 0.08,
+                    wr: 0.05 + Math.random() * 0.05,
+                    p1: Math.random() * 6.28,
+                    p2: Math.random() * 6.28,
+                    p3: Math.random() * 6.28
+                });
             }
         }
 
         function removeWorms() {
-            for (const c of worms) c.remove();
+            for (const w of worms) w.el.remove();
             worms = [];
+        }
+
+        function updateWorms(time) {
+            for (const w of worms) {
+                w.el.style.transform =
+                    'translate(' + (Math.sin(time * w.wx + w.p1) * w.ax).toFixed(1) + 'px,'
+                    + (Math.cos(time * w.wy + w.p2) * w.ay).toFixed(1) + 'px)'
+                    + ' rotate(' + (w.rot + Math.sin(time * w.wr + w.p3) * 9).toFixed(1) + 'deg)';
+            }
         }
 
         // ===== Reflection wobble: the page is the surface of the water =====
@@ -2971,7 +3063,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             clearReflectables();
             if (reducedFx) return;
             reflectEls = [...document.querySelectorAll(
-                '.wordart, .now-index, .app-titlebar h2, .dl-header h2, .now-tagline, .now-url, .now-get, .now-worm, .now-consent, .copyright'
+                '.wordart, .now-index, .app-titlebar h2, .dl-header h2, .now-tagline, .now-url, .now-get, .now-consent, .copyright'
             )].map(el => ({
                 el,
                 origInline: el.style.transform,
