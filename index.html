@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1984drum freeware</title>
-    <meta name="description" content="1984drum Shareware — a satirical 1990s software emporium of hand-crafted web apps.">
+    <meta name="description" content="1984drum Shareware — the World Wide Web's premier software emporium of hand-crafted web apps. 100% legit.">
     <style>
         /* ============ 90s FOUNDATION ============ */
         @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=VT323&display=swap');
@@ -1196,6 +1196,9 @@
             <button class="win95-button" id="midi-toggle" onclick="midiToggle()">▶ MIDI: OFF</button>
             <button class="win95-button" id="midi-next" onclick="midiNext()" title="Next track">⏭</button>
         </div>
+        <div class="midi-row">
+            <button class="win95-button" id="sfx-toggle" onclick="sfxToggle()" title="Toggle sound effects" style="flex-grow:1;">🔇 SFX: MUTED</button>
+        </div>
         <div class="midi-lcd terminal-font" id="midi-lcd">SOUND BLASTER 16 READY</div>
     </div>
 
@@ -1269,7 +1272,7 @@ Rebooting in American...</div>
 
         <p class="copyright">
             © 1999-2026 1984drum Shareware Solutions Inc. All rights reserved locally.<br>
-            Formerly "DRUMMY WAREZ", formerly "Satirical App Store" — rebranding is our passion.<br>
+            Formerly "DRUMMY WAREZ" — rebranding is our passion.<br>
             Hosted on the World Wide Web at warez.1984drum.com
         </p>
     </footer>
@@ -1388,24 +1391,54 @@ Rebooting in American...</div>
         }
 
         let lastSparkle = 0;
+        let wandHeld = null; // [x, y] while the wand is pressed down
+        let wandHoldTimer = null;
         if (!reducedFx) {
             document.addEventListener('mousemove', (e) => {
                 const now = performance.now();
-                if (now - lastSparkle < 40) return;
+                // holding the wand down charges it: denser, faster sparkles
+                if (now - lastSparkle < (wandHeld ? 16 : 40)) return;
                 lastSparkle = now;
-                spawnSparkle(e.clientX + 4, e.clientY + 4, false);
-                spawnSparkle(e.clientX + 4, e.clientY + 4, false);
+                const n = wandHeld ? 5 : 2;
+                for (let i = 0; i < n; i++) spawnSparkle(e.clientX + 4, e.clientY + 4, false);
             });
             // Every click is a spell.
             document.addEventListener('click', (e) => {
                 for (let i = 0; i < 12; i++) spawnSparkle(e.clientX, e.clientY, true);
             });
+            // Hold the wand down and it pours magic even while stationary.
+            document.addEventListener('pointerdown', (e) => {
+                wandHeld = [e.clientX, e.clientY];
+                clearInterval(wandHoldTimer);
+                wandHoldTimer = setInterval(() => {
+                    if (!wandHeld) return;
+                    for (let i = 0; i < 3; i++) spawnSparkle(wandHeld[0], wandHeld[1], true);
+                }, 50);
+            });
+            document.addEventListener('pointermove', (e) => {
+                if (wandHeld) wandHeld = [e.clientX, e.clientY];
+            });
+            for (const ev of ['pointerup', 'pointercancel']) {
+                document.addEventListener(ev, () => {
+                    wandHeld = null;
+                    clearInterval(wandHoldTimer);
+                    wandHoldTimer = null;
+                });
+            }
         }
 
         // ===== Arcade SFX: pews and booms via Web Audio =====
         // The context unlocks on the first click/tap (browser autoplay rules);
         // until then llamas fire silently, which is canon for a muted 90s PC.
         let sfxCtx = null, sfxNoiseBuf = null;
+        let sfxMuted = true; // sound is OFF until the user unmutes, no exceptions
+
+        function sfxToggle() {
+            sfxMuted = !sfxMuted;
+            document.getElementById('sfx-toggle').textContent = sfxMuted ? '🔇 SFX: MUTED' : '🔊 SFX: ON';
+            if (!sfxMuted) sfxGet(); // the toggle click is our user gesture — unlock audio now
+        }
+
         function sfxGet() {
             if (!sfxCtx) {
                 try { sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -1428,6 +1461,7 @@ Rebooting in American...</div>
         }
 
         function sfxShot(kind) {
+            if (sfxMuted) return;
             const ctx = sfxGet();
             if (!ctx || ctx.state !== 'running') return;
             const t = ctx.currentTime;
@@ -1449,6 +1483,7 @@ Rebooting in American...</div>
         }
 
         function sfxExplode() {
+            if (sfxMuted) return;
             const ctx = sfxGet();
             if (!ctx || ctx.state !== 'running') return;
             const t = ctx.currentTime;
@@ -1848,6 +1883,9 @@ Rebooting in American...</div>
                 el.getContext('2d').drawImage(template, 0, 0);
                 el.style.width = Math.round(BASE_W * size) + 'px';
                 el.style.height = Math.round(BASE_H * size) + 'px';
+                // some llamas roam in front of the windows, most stay behind
+                const front = Math.random() < 0.35;
+                el.style.zIndex = front ? 45 : -1;
                 document.body.appendChild(el);
                 const w = BASE_W * size, h = BASE_H * size;
                 const ang = Math.random() * Math.PI * 2;
@@ -1855,7 +1893,7 @@ Rebooting in American...</div>
                 const vx = Math.max(0.35, Math.abs(Math.cos(ang))) * speed * Math.sign(Math.cos(ang) || 1);
                 const vy = Math.max(0.35, Math.abs(Math.sin(ang))) * speed * Math.sign(Math.sin(ang) || 1);
                 const l = {
-                    el, speed, size,
+                    el, speed, size, front,
                     w, h,
                     // spawn centred on the given point (clamped on-screen), else random
                     x: px !== undefined
@@ -1953,10 +1991,14 @@ Rebooting in American...</div>
             // Click a llama to breed: the offspring is 2% faster and either
             // 5% larger or 5% smaller than its parent.
             document.addEventListener('click', (e) => {
-                if (e.target.closest('.win95-window, .assistant, .midi-deck, #custom-modal, #intro, #bsod, a, button, .badge-row, .hit-counter-box, .webring, marquee')) return;
+                // never steal clicks from anything interactive
+                if (e.target.closest('a, button, [onclick], .assistant, .midi-deck, #custom-modal, #intro, #bsod')) return;
+                // background llamas are hidden behind content; only front llamas are clickable there
+                const overContent = !!e.target.closest('.win95-window, .badge-row, .hit-counter-box, .webring, marquee');
                 const slop = 8;
                 for (let i = llamas.length - 1; i >= 0; i--) {
                     const l = llamas[i];
+                    if (overContent && !l.front) continue;
                     if (e.clientX >= l.x - slop && e.clientX <= l.x + l.w + slop &&
                         e.clientY >= l.y - slop && e.clientY <= l.y + l.h + slop) {
                         if (llamas.length < MAX_LLAMAS) {
