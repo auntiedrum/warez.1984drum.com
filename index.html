@@ -17,7 +17,13 @@
             cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' shape-rendering='crispEdges'%3E%3Cline x1='8' y1='8' x2='25' y2='25' stroke='%23000000' stroke-width='5'/%3E%3Cline x1='8' y1='8' x2='13' y2='13' stroke='%23ffffff' stroke-width='3'/%3E%3Cline x1='21' y1='21' x2='25' y2='25' stroke='%23ffffff' stroke-width='3'/%3E%3Cpolygon points='5,0 6.6,3.4 10,5 6.6,6.6 5,10 3.4,6.6 0,5 3.4,3.4' fill='%23ffe14d' stroke='%23000000' stroke-width='0.8'/%3E%3C/svg%3E") 5 5, auto !important;
         }
 
-        html { -webkit-text-size-adjust: 100%; }
+        html {
+            -webkit-text-size-adjust: 100%;
+            /* full-bleed worms, giant compositions and screen-wide shockwaves
+               must never hand mobile browsers a horizontal scrollbar */
+            overflow-x: hidden;
+            overflow-x: clip;
+        }
 
         body {
             margin: 0;
@@ -944,7 +950,7 @@
         /* The toggle itself: pure 2026 growth-hacker energy, deliberately
            clashing with everything around it. Desktop only. */
         .era-toggle {
-            display: none;
+            display: block;
             position: fixed;
             top: 14px;
             left: 14px;
@@ -969,7 +975,9 @@
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
-        @media (min-width: 768px) { .era-toggle { display: block; } }
+        @media (max-width: 767px) {
+            .era-toggle { top: 8px; left: 8px; padding: 8px 14px; font-size: 0.62rem; }
+        }
 
         /* NOW mode: black and white, giant type, almost no information,
            whitespace as a personality trait. */
@@ -1366,6 +1374,23 @@
             pointer-events: none;
         }
         body.now #now-dot { display: block; }
+
+        /* ============ MOBILE DIET ============ */
+        /* Phones get fewer sections, bigger type, and enough breathing room
+           to actually watch the llamas. */
+        @media (max-width: 640px) {
+            .testimonials, .dos-panel, .scroll-panel, .pig-live, .boxed-copy { display: none; }
+            .pitch-quote { font-size: 1.08rem; line-height: 1.5; }
+            .retro-table th, .retro-table td { font-size: 1rem; padding: 7px 8px; }
+            .subhead { font-size: 1.3rem; }
+            .win95-header .title { font-size: 1.05rem; }
+            .win95-button { font-size: 1rem; }
+            main { gap: 3rem; padding: 1rem 4vw 2rem; }
+            .app-body { padding: 1.1rem; }
+            /* 2026 furniture on a small screen */
+            .now-consent { max-width: 92vw; }
+            body.now .now-rail { display: none; }
+        }
 
         @media (prefers-reduced-motion: reduce) {
             .ants, .wordart, .blink, .spin-3d, .rainbow-text, .assistant, .llama-sprite, .pig-vibrate, .era-toggle, .kand-turn { animation: none; }
@@ -3011,7 +3036,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         let noiseTex = null, progA = null, progI = null, paintHalfFloat = false;
 
         const nowDot = document.getElementById('now-dot');
-        document.addEventListener('mousemove', (e) => {
+        // pointermove covers mouse AND touch: a finger drags the water too
+        document.addEventListener('pointermove', (e) => {
             nowMouse[0] = e.clientX;
             nowMouse[1] = innerHeight - e.clientY; // Shadertoy origin is bottom-left
             nowLastMove = performance.now();
