@@ -723,8 +723,9 @@
         }
 
         /* ============ LLAMATRON LLAMAS ============ */
+        /* Arcade entities live in document space: they scroll with the page. */
         .llama-sprite {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             z-index: -1;
@@ -737,14 +738,14 @@
             to   { filter: hue-rotate(360deg); }
         }
         .llama-shot {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             z-index: 40;
             pointer-events: none;
         }
         .llama-laser {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             width: 26px;
@@ -756,7 +757,7 @@
             pointer-events: none;
         }
         .llama-boom {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             z-index: 40;
@@ -769,7 +770,7 @@
         }
         /* ============ ASTEROIDS ============ */
         .roid {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             z-index: -1;
@@ -784,7 +785,7 @@
             to   { filter: sepia(1) saturate(7) hue-rotate(360deg) brightness(1.2); }
         }
         .mc-blast {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             z-index: 48;
@@ -819,7 +820,7 @@
             to   { opacity: 0; }
         }
         .boom-ring {
-            position: fixed;
+            position: absolute;
             z-index: 45;
             pointer-events: none;
             width: 24px;
@@ -2216,6 +2217,25 @@ Rebooting in American...</div>
                 o.frequency.setValueAtTime(700, t);
                 o.frequency.exponentialRampToValueAtTime(160, t + 0.18);
                 dur = 0.19;
+            } else if (kind === 'taco') {   // crisp shell flutter
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(820, t);
+                o.frequency.exponentialRampToValueAtTime(210, t + 0.13);
+                dur = 0.14;
+            } else if (kind === 'banana') { // boomerang whistle: out, and back
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(700, t);
+                o.frequency.exponentialRampToValueAtTime(1400, t + 0.09);
+                o.frequency.exponentialRampToValueAtTime(480, t + 0.2);
+                dur = 0.22;
+            } else if (kind === 'vhs' || kind === 'bowling') { // heavy media clunk
+                o.frequency.setValueAtTime(200, t);
+                o.frequency.exponentialRampToValueAtTime(70, t + 0.15);
+                dur = 0.16;
+            } else if (kind === 'donut' || kind === 'cheese') { // dessert-tier pew
+                o.frequency.setValueAtTime(1150, t);
+                o.frequency.exponentialRampToValueAtTime(320, t + 0.11);
+                dur = 0.12;
             } else if (kind === 'hotdog') { // mortar thoomp
                 o.type = 'sine';
                 o.frequency.setValueAtTime(300, t);
@@ -3273,7 +3293,13 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 pizza: '🍕',    // wobbles like a thrown frisbee that regrets it
                 floppy: '💾',   // 1.44MB of straight-line velocity
                 cd: '💿',       // spins, bounces off the top and bottom
-                hotdog: '🌭'    // lobbed in a lazy mortar arc
+                hotdog: '🌭',   // lobbed in a lazy mortar arc
+                taco: '🌮',     // flutters, shell-first
+                donut: '🍩',    // glazed glide, heavy rotation
+                banana: '🍌',   // boomerang. it comes back. it always comes back.
+                vhs: '📼',      // heavy media, slow and inevitable
+                cheese: '🧀',   // tumbling wedge physics
+                bowling: '🎳'   // ten-pin trajectory, respects nothing
             };
             const AMMO_KINDS = Object.keys(AMMO);
             const llamas = [];
@@ -3282,6 +3308,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             // 90s fluorescents for the 2026 llamas: the one thing that never modernised
             const FLUORO = ['#ffff00', '#39ff14', '#00e5ff', '#ff6ec7', '#ff9500', '#ff2079', '#a3ff00'];
             const dprNow = () => Math.min(window.devicePixelRatio || 1, 2);
+            // The world is the whole document, not the viewport. Height is
+            // measured from the footer so transformed critters at the bottom
+            // edge can't ratchet the document (and the world) ever taller.
+            const footerEl = document.querySelector('footer');
+            const worldW = () => document.documentElement.clientWidth;
+            const worldH = () => Math.max(innerHeight, footerEl.offsetTop + footerEl.offsetHeight);
 
             function spawnLlama(speed, size, px, py, laserBaby) {
                 const neckScale = 1 + Math.random() * 7; // neck length: 1x to 8x
@@ -3311,11 +3343,11 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     w, h,
                     // spawn centred on the given point (clamped on-screen), else random
                     x: px !== undefined
-                        ? Math.min(Math.max(0, px - w / 2), Math.max(0, innerWidth - w))
-                        : Math.random() * Math.max(1, innerWidth - w),
+                        ? Math.min(Math.max(0, px - w / 2), Math.max(0, worldW() - w))
+                        : Math.random() * Math.max(1, worldW() - w),
                     y: py !== undefined
-                        ? Math.min(Math.max(0, py - h / 2), Math.max(0, innerHeight - h))
-                        : Math.random() * Math.max(1, innerHeight - h),
+                        ? Math.min(Math.max(0, py - h / 2), Math.max(0, worldH() - h))
+                        : Math.random() * Math.max(1, worldH() - h),
                     vx, vy,
                     type: laserBaby ? 'laser'
                         : Math.random() < 0.25 ? 'exploder'
@@ -3357,17 +3389,25 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 const s = document.createElement('span');
                 s.className = 'llama-shot';
                 s.textContent = AMMO[l.type];
-                s.style.fontSize = Math.round(16 * l.size) + 'px';
+                const heavy = l.type === 'vhs' || l.type === 'bowling';
+                s.style.fontSize = Math.round((heavy ? 20 : 16) * l.size) + 'px';
                 document.body.appendChild(s);
                 const dir = l.vx < 0 ? -1 : 1;
-                const speed = l.type === 'floppy' ? 540 : l.type === 'cd' ? 260 : 320;
+                const speed = l.type === 'floppy' ? 540
+                    : l.type === 'cd' ? 260
+                    : l.type === 'vhs' ? 190
+                    : l.type === 'banana' ? 340
+                    : l.type === 'bowling' ? 300
+                    : 320;
                 shots.push({
                     el: s,
                     kind: l.type,
+                    dir,
                     x: l.x + (dir < 0 ? 0 : l.w),
                     y: l.y + l.h * 0.12, // from the head, wherever the neck put it
                     vx: dir * speed,
                     vy: l.type === 'hotdog' ? -160 - Math.random() * 80
+                        : l.type === 'cheese' ? -80 - Math.random() * 60
                         : l.type === 'cd' ? (Math.random() - 0.5) * 300
                         : (Math.random() - 0.5) * 80,
                     spin: 0,
@@ -3379,6 +3419,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             function spawnDebris(x, y, reach) {
                 const s = document.createElement('span');
                 s.className = 'sparkle';
+                s.style.position = 'absolute'; // explosion debris lives in world space
                 const glyphs = ['■', '■', '▲', '✦', '✨', '🔥', '·'];
                 s.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
                 s.style.color = ['#ffe14d', '#ff5500', '#ff00ff', '#00ffff', '#ffffff'][Math.floor(Math.random() * 5)];
@@ -3461,21 +3502,24 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 const overContent = !document.body.classList.contains('now')
                     && !!e.target.closest('.win95-window, .badge-row, .hit-counter-box, .webring, marquee');
                 const slop = 8;
+                const ex = e.clientX + scrollX, ey = e.clientY + scrollY; // world coords
                 for (let i = llamas.length - 1; i >= 0; i--) {
                     const l = llamas[i];
                     if (overContent && !l.front) continue;
-                    if (e.clientX >= l.x - slop && e.clientX <= l.x + l.w + slop &&
-                        e.clientY >= l.y - slop && e.clientY <= l.y + l.h + slop) {
+                    if (ex >= l.x - slop && ex <= l.x + l.w + slop &&
+                        ey >= l.y - slop && ey <= l.y + l.h + slop) {
                         if (llamas.length < MAX_LLAMAS) {
-                            spawnLlama(l.speed * 1.02, l.size * (Math.random() < 0.5 ? 1.05 : 0.95), e.clientX, e.clientY);
+                            spawnLlama(l.speed * 1.02, l.size * (Math.random() < 0.5 ? 1.05 : 0.95), ex, ey);
                         }
                         break;
                     }
                 }
             });
 
-            // The original specimen.
-            spawnLlama(55 + Math.random() * 65, 1);
+            // The original specimen, somewhere you can actually see it.
+            spawnLlama(55 + Math.random() * 65, 1,
+                innerWidth * (0.2 + Math.random() * 0.6),
+                scrollY + innerHeight * (0.25 + Math.random() * 0.5));
 
             if (reduced) return; // llamas stand still; no shooting, no explosions
 
@@ -3543,8 +3587,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 const a = {
                     el, R, invincible,
                     pixEl: el, vecEl: null, vecCtx: null, vecModel: null,
-                    x: edge === 0 ? -R * 2 : edge === 1 ? innerWidth : Math.random() * innerWidth,
-                    y: edge === 2 ? -R * 2 : edge === 3 ? innerHeight : Math.random() * innerHeight,
+                    x: edge === 0 ? -R * 2 : edge === 1 ? worldW() : Math.random() * worldW(),
+                    y: edge === 2 ? -R * 2 : edge === 3 ? worldH() : Math.random() * worldH(),
                     vx: (Math.random() - 0.5) * 60,
                     vy: (Math.random() - 0.5) * 60,
                     spin: 0,
@@ -3933,6 +3977,9 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 }
                 fxCtx.clearRect(0, 0, cw, ch);
                 if (!vecFx.length) return;
+                // particles live in world (document) space; the canvas is
+                // viewport-fixed, so offset by the scroll position
+                const ox = scrollX, oy = scrollY;
                 fxCtx.lineCap = 'round';
                 for (let i = vecFx.length - 1; i >= 0; i--) {
                     const p = vecFx[i];
@@ -3948,15 +3995,15 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                         p.y += p.vy * dt;
                         p.rot += p.rotV * dt;
                         const c = Math.cos(p.rot), s = Math.sin(p.rot);
-                        fxCtx.moveTo((p.x + p.ax * c - p.ay * s) * d, (p.y + p.ax * s + p.ay * c) * d);
-                        fxCtx.lineTo((p.x + p.bx * c - p.by * s) * d, (p.y + p.bx * s + p.by * c) * d);
+                        fxCtx.moveTo((p.x - ox + p.ax * c - p.ay * s) * d, (p.y - oy + p.ax * s + p.ay * c) * d);
+                        fxCtx.lineTo((p.x - ox + p.bx * c - p.by * s) * d, (p.y - oy + p.bx * s + p.by * c) * d);
                     } else {
                         p.r += p.vr * dt;
                         const n = p.jit.length;
                         for (let k = 0; k <= n; k++) {
                             const a = p.rot + (k % n) / n * Math.PI * 2;
                             const rr = p.r * p.jit[k % n];
-                            const px = (p.x + Math.cos(a) * rr) * d, py = (p.y + Math.sin(a) * rr) * d;
+                            const px = (p.x - ox + Math.cos(a) * rr) * d, py = (p.y - oy + Math.sin(a) * rr) * d;
                             k ? fxCtx.lineTo(px, py) : fxCtx.moveTo(px, py);
                         }
                     }
@@ -3979,12 +4026,13 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 // unless it's 2026 and the windows are made of whitespace
                 if (!document.body.classList.contains('now')
                     && e.target.closest('.win95-window, .badge-row, .hit-counter-box, .webring, marquee')) return;
+                const ex = e.clientX + scrollX, ey = e.clientY + scrollY; // world coords
                 for (let i = asteroids.length - 1; i >= 0; i--) {
                     const a = asteroids[i];
                     if (a.state === 'digest') continue;
-                    if (Math.hypot(e.clientX - (a.x + a.R), e.clientY - (a.y + a.R)) < a.R + 12) {
+                    if (Math.hypot(ex - (a.x + a.R), ey - (a.y + a.R)) < a.R + 12) {
                         if (a.invincible) {
-                            for (let j = 0; j < 6; j++) spawnDebris(e.clientX, e.clientY, 70); // armour spark
+                            for (let j = 0; j < 6; j++) spawnDebris(ex, ey, 70); // armour spark
                         } else {
                             destroyAsteroid(a);
                         }
@@ -3993,8 +4041,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 }
             });
 
-            for (let i = 0; i < 5; i++) spawnAsteroid();
-            setInterval(() => { if (asteroids.length < 6) spawnAsteroid(); }, 4000);
+            // enough rocks for the whole document, now that space scrolls
+            const roidTarget = () => Math.min(14, 3 + Math.ceil(worldH() / innerHeight) * 2);
+            for (let i = 0; i < roidTarget(); i++) spawnAsteroid();
+            setInterval(() => { if (asteroids.length < roidTarget()) spawnAsteroid(); }, 4000);
 
             let last = performance.now();
             function step(now) {
@@ -4064,8 +4114,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     }
                     l.x += l.vx * dt;
                     l.y += l.vy * dt;
-                    const maxX = Math.max(0, innerWidth - l.w);
-                    const maxY = Math.max(0, innerHeight - l.h);
+                    const maxX = Math.max(0, worldW() - l.w);
+                    const maxY = Math.max(0, worldH() - l.h);
                     if (l.x <= 0) { l.x = 0; l.vx = Math.abs(l.vx); }
                     else if (l.x >= maxX) { l.x = maxX; l.vx = -Math.abs(l.vx); }
                     if (l.y <= 0) { l.y = 0; l.vy = Math.abs(l.vy); }
@@ -4127,10 +4177,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     a.x += a.vx * dt;
                     a.y += a.vy * dt;
                     a.spin += a.spinRate * dt;
-                    // wrap around the screen like it's 1979
+                    // wrap around the document like it's 1979
                     const D = a.R * 2;
-                    if (a.x < -D) a.x = innerWidth; else if (a.x > innerWidth) a.x = -D;
-                    if (a.y < -D) a.y = innerHeight; else if (a.y > innerHeight) a.y = -D;
+                    if (a.x < -D) a.x = worldW(); else if (a.x > worldW()) a.x = -D;
+                    if (a.y < -D) a.y = worldH(); else if (a.y > worldH()) a.y = -D;
                     if (a.el === a.vecEl) {
                         // vector rocks tumble in 3D on the canvas, not in CSS
                         a.el.style.transform = 'translate(' + a.x + 'px,' + a.y + 'px)';
@@ -4143,14 +4193,23 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                     const s = shots[i];
                     // per-snack ballistics
                     if (s.kind === 'hotdog') s.vy += 380 * dt;                    // gravity claims the sausage
+                    else if (s.kind === 'cheese') s.vy += 240 * dt;               // wedge physics
+                    else if (s.kind === 'bowling') s.vy += 90 * dt;               // a slow lane
                     else if (s.kind === 'pizza') s.vy = Math.sin(s.wob += 9 * dt) * 130; // aerodynamically cursed
+                    else if (s.kind === 'taco') s.vy = Math.sin(s.wob += 14 * dt) * 90;  // shell flutter
+                    else if (s.kind === 'donut') s.vy = Math.sin(s.wob += 6 * dt) * 60;  // glazed glide
+                    else if (s.kind === 'banana') s.vx -= s.dir * 420 * dt;       // it comes back
                     if (s.kind === 'cd') s.spin += 900 * dt;
+                    else if (s.kind === 'donut') s.spin += 720 * dt;
+                    else if (s.kind === 'cheese') s.spin += 540 * dt;
+                    else if (s.kind === 'banana') s.spin += 400 * s.dir * dt;
                     else if (s.kind === 'floppy') s.spin += 300 * dt;
+                    else if (s.kind === 'vhs') s.spin += 120 * dt;
                     s.x += s.vx * dt;
                     s.y += s.vy * dt;
-                    if (s.kind === 'cd') { // CDs ricochet off the letterbox
+                    if (s.kind === 'cd') { // CDs ricochet off the document's letterbox
                         if (s.y <= 0) { s.y = 0; s.vy = Math.abs(s.vy) || 90; }
-                        else if (s.y >= innerHeight - 20) { s.y = innerHeight - 20; s.vy = -Math.abs(s.vy); }
+                        else if (s.y >= worldH() - 20) { s.y = worldH() - 20; s.vy = -Math.abs(s.vy); }
                     }
                     let hit = false;
                     for (const a of asteroids) {
@@ -4176,7 +4235,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                             }
                         }
                     }
-                    if (hit || s.x < -60 || s.x > innerWidth + 60 || s.y < -60 || s.y > innerHeight + 60) {
+                    if (hit || s.x < -60 || s.x > worldW() + 60 || s.y < -60 || s.y > worldH() + 60) {
                         s.el.remove();
                         shots.splice(i, 1);
                     } else {
