@@ -1716,7 +1716,7 @@ Rebooting in American...</div>
             }, 3000);
         }
 
-        // ===== Intro: under construction (1.5s) -> warp speed (~3s) -> page =====
+        // ===== Intro: under construction (5s, click to skip) -> warp speed (~3s) -> page =====
         (function () {
             const intro = document.getElementById('intro');
             const construction = document.getElementById('intro-construction');
@@ -1746,7 +1746,7 @@ Rebooting in American...</div>
                 warp.style.opacity = '1';
                 startWarp();
                 setTimeout(endIntro, 3000);
-            }, 1500);
+            }, 5000);
 
             function startWarp() {
                 const ctx = warp.getContext('2d');
