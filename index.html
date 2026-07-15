@@ -1152,6 +1152,17 @@
         body.now .copyright { color: #aaaaaa; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
         /* the fauna stays, but joins the monochrome regime */
         .llama-vec, .roid-vec { image-rendering: auto; } /* vector wireframes want smooth lines */
+        /* 2026 explosions are drawn here: wireframe shrapnel, jittered rings */
+        .vec-fx {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 47;
+            pointer-events: none;
+            display: none;
+        }
+        body.now .vec-fx { display: block; }
         body.now.no-paint, body.now.no-paint * { cursor: crosshair !important; } /* no WebGL2 fallback */
         body.now .llama-sprite { animation: none; } /* llamas keep their fluoro */
         body.now .llama-shot, body.now .sparkle, body.now .llama-boom,
@@ -1259,13 +1270,12 @@
                         <canvas class="matrix-meme" id="matrix-meme" width="20" height="20"
                                 title="do not stare directly at the meme"
                                 onclick="matrixReset(); return false;"></canvas>
-                        <a href="#" class="app-link" onclick="showModal('Navigating to unsunkwords.com... \n\nError 404: Synergy overload.'); return false;">unsunkwords.com</a>
+                        <a href="https://unsunkwords.com/" class="app-link" target="_blank" rel="noopener">unsunkwords.com</a>
                     </div>
                 </div>
 
                 <p class="now-tagline">cowords.</p>
-                <a class="now-url" href="#" style="transform: rotate(-2deg);"
-                   onclick="showModal('unsunkwords.com\n\nThe words are down there. Someone should get them.'); return false;">
+                <a class="now-url" href="https://unsunkwords.com/" target="_blank" rel="noopener" style="transform: rotate(-2deg);">
                     <svg viewBox="0 0 470 104" xmlns="http://www.w3.org/2000/svg" aria-label="unsunkwords.com">
                         <circle cx="52" cy="52" r="36" fill="#ffd60a"/>
                         <circle cx="52" cy="52" r="20" fill="#d90429"/>
@@ -1453,8 +1463,7 @@
                 </div>
 
                 <p class="now-tagline">bandmin.</p>
-                <a class="now-url" href="#" style="transform: rotate(-1deg);"
-                   onclick="showModal('gignite.live\n\nIt is, technically.'); return false;">
+                <a class="now-url" href="https://gignite.live/" target="_blank" rel="noopener" style="transform: rotate(-1deg);">
                     <svg viewBox="0 0 470 104" xmlns="http://www.w3.org/2000/svg" aria-label="gignite.live">
                         <polygon points="30,92 62,16 94,92" fill="#d90429"/>
                         <circle cx="100" cy="30" r="16" fill="#1d4ed8"/>
@@ -1956,7 +1965,7 @@ Rebooting in American...</div>
             'consent is stored locally. in your heart.'
         ];
         const CONSENT_BTNS = [
-            'accept', 'accept more', 'keep accepting', 'accept forever',
+            'accept', 'accept no more', 'keep accepting', 'accept forever',
             'agree harder', 'yes to nothing', 'consent again', 'accept the banner'
         ];
 
@@ -2583,26 +2592,35 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         TEX(uv + unit.zy)-TEX(uv - unit.zy),
         gray*gray*gray));
 
-    // Invisible glass: the body of the water is fully transparent — only the
-    // tilted rim of the ripple catches light and shade, like a finger dragged
-    // through still water disturbing the reflection.
     vec3 L = normalize(vec3(0.4, 0.6, 0.7));
     float slope = clamp(length(normal.xy) * 1.7, 0.0, 1.0);  // rim of the ripple
     float side = dot(normal, L);                             // lit side vs shade side
     float spec = pow(max(side, 0.0), 20.0);                  // sun glints
-
     float mask = ss(0.004, 0.05, gray);
-    vec3 colour = mix(vec3(0.05), vec3(1.0), clamp(side * 0.5 + 0.5, 0., 1.));
     vec3 tint = .5+.5*cos(vec3(1,2,3)+side*4.-uv.y*3.-3.);
-    colour += tint * slope * 0.12;                           // faint iridescence
-    colour += spec * 0.6;
+
+    // With a snapshot of the page (iChannel2): true refraction. The water
+    // bends the page itself, the way the original bent its checkerboard,
+    // and the reflection is intact again once the water stills.
+    vec2 refr = normal.xy * 0.22 * gray;
+    vec3 page = texture(iChannel2, vec2(
+        clamp(uv.x + refr.x, 0.001, 0.999),
+        clamp(1.0 - (uv.y + refr.y), 0.001, 0.999))).rgb;
+    vec3 water = page * (0.93 + 0.14 * side * slope);
+    water = mix(water, vec3(1.0), spec * 0.5);
+    water += tint * slope * 0.09;
+
+    // Without a snapshot: invisible-glass rim only
+    vec3 rimCol = mix(vec3(0.05), vec3(1.0), clamp(side * 0.5 + 0.5, 0., 1.))
+        + tint * slope * 0.12 + spec * 0.6;
+    float rimAlpha = min(mask * (slope * 0.42 + spec * 0.30), 0.8);
+
+    vec3 colour = mix(rimCol, water, uSnap);
+    float alpha = mix(rimAlpha, mask, uSnap);
 
     // Dither to prevent colour banding
     colour -= dither.x*.06;
     colour = clamp(colour, 0., 1.);
-
-    // Alpha lives only on the moving rim; flat water is invisible
-    float alpha = min(mask * (slope * 0.42 + spec * 0.30), 0.8);
 
     // Crisp cursor dot: fixed pixel radius, hard edge, no pulse.
     // iResolution.z carries the devicePixelRatio.
@@ -2638,7 +2656,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             gl.shaderSource(fs,
                 '#version 300 es\nprecision highp float;\n' +
                 'uniform vec3 iResolution;\nuniform float iTime;\nuniform float iTimeDelta;\nuniform vec4 iMouse;\n' +
-                'uniform highp sampler2D iChannel0;\nuniform highp sampler2D iChannel1;\nout vec4 outColour;\n' +
+                'uniform highp sampler2D iChannel0;\nuniform highp sampler2D iChannel1;\nuniform highp sampler2D iChannel2;\nuniform float uSnap;\nout vec4 outColour;\n' +
                 NOW_COMMON + fragBody +
                 '\nvoid main() { mainImage(outColour, gl_FragCoord.xy); }');
             gl.compileShader(fs);
@@ -2653,12 +2671,14 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             gl.useProgram(p);
             gl.uniform1i(gl.getUniformLocation(p, 'iChannel0'), 0);
             gl.uniform1i(gl.getUniformLocation(p, 'iChannel1'), 1);
+            gl.uniform1i(gl.getUniformLocation(p, 'iChannel2'), 2);
             return {
                 p,
                 res: gl.getUniformLocation(p, 'iResolution'),
                 time: gl.getUniformLocation(p, 'iTime'),
                 dt: gl.getUniformLocation(p, 'iTimeDelta'),
-                mouse: gl.getUniformLocation(p, 'iMouse')
+                mouse: gl.getUniformLocation(p, 'iMouse'),
+                snap: gl.getUniformLocation(p, 'uSnap')
             };
         }
 
@@ -2728,6 +2748,88 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         // render at device resolution so 2026 stays crisp on retina glass
         function nowDpr() { return Math.min(window.devicePixelRatio || 1, 2); }
 
+        // ===== Page snapshot: the reflection the water disturbs =====
+        // The live DOM is serialised into an SVG foreignObject, rasterised to
+        // an Image, and the visible viewport is uploaded as iChannel2 so the
+        // shader can genuinely refract the page. Canvases (worms, llamas) and
+        // scripts are stripped from the clone; everything typographic stays.
+        let snapImg = null, snapCanvas = null, snapCtx = null, snapTex = null;
+        let snapReady = 0, snapBusy = false, snapTimer = null, snapInterval = null;
+
+        function buildSnapshot() {
+            if (snapBusy || !document.body.classList.contains('now')) return;
+            snapBusy = true;
+            try {
+                const clone = document.documentElement.cloneNode(true);
+                clone.querySelectorAll('script, canvas, .assistant, .midi-deck, .sparkle, .llama-shot, .llama-laser, .llama-boom, .boom-ring, .boom-flash, .mc-blast').forEach(n => n.remove());
+                // external references (the @import for the 90s fonts) would taint
+                // the canvas; 2026 is all system fonts anyway
+                clone.querySelectorAll('style').forEach(s => {
+                    s.textContent = s.textContent.replace(/@import[^;]+;/g, '');
+                });
+                const w = Math.max(document.documentElement.scrollWidth, innerWidth);
+                const h = Math.max(document.documentElement.scrollHeight, innerHeight);
+                const xml = new XMLSerializer().serializeToString(clone);
+                const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">'
+                    + '<foreignObject width="100%" height="100%">' + xml + '</foreignObject></svg>';
+                const img = new Image();
+                img.onload = () => { snapImg = img; snapBusy = false; uploadSnapshot(); };
+                img.onerror = () => { snapBusy = false; };
+                // data: URI rather than a blob URL — blob-loaded foreignObject
+                // SVGs taint the canvas in Chromium; data: URIs do not
+                img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+            } catch (e) {
+                snapBusy = false;
+            }
+        }
+
+        function uploadSnapshot() {
+            if (!snapImg || !nowGl) return;
+            const gl = nowGl, d = nowDpr();
+            const w = innerWidth, h = innerHeight;
+            if (!snapCanvas) {
+                snapCanvas = document.createElement('canvas');
+                snapCtx = snapCanvas.getContext('2d');
+            }
+            snapCanvas.width = Math.round(w * d);
+            snapCanvas.height = Math.round(h * d);
+            snapCtx.fillStyle = '#ffffff';
+            snapCtx.fillRect(0, 0, snapCanvas.width, snapCanvas.height);
+            snapCtx.drawImage(snapImg, scrollX, scrollY, w, h, 0, 0, snapCanvas.width, snapCanvas.height);
+            try {
+                if (!snapTex) {
+                    snapTex = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, snapTex);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                }
+                gl.bindTexture(gl.TEXTURE_2D, snapTex);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, snapCanvas);
+                snapReady = 1;
+            } catch (e) {
+                snapReady = 0; // tainted or unavailable: fall back to rim-glass
+            }
+        }
+
+        function scheduleSnapshot(delay) {
+            clearTimeout(snapTimer);
+            snapTimer = setTimeout(buildSnapshot, delay || 120);
+        }
+
+        let snapScrollT = 0, snapScrollTrail = null;
+        addEventListener('scroll', () => {
+            if (!snapImg || !document.body.classList.contains('now')) return;
+            const n = performance.now();
+            clearTimeout(snapScrollTrail);
+            if (n - snapScrollT > 160) { snapScrollT = n; uploadSnapshot(); }
+            else snapScrollTrail = setTimeout(uploadSnapshot, 170);
+        }, { passive: true });
+        addEventListener('resize', () => {
+            if (document.body.classList.contains('now')) scheduleSnapshot(300);
+        });
+
         function nowCursorFrame(t) {
             const gl = nowGl;
             if (!nowT0) { nowT0 = t; nowLastT = t; }
@@ -2769,6 +2871,9 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             gl.bindTexture(gl.TEXTURE_2D, paintTex[dst]);
             gl.activeTexture(gl.TEXTURE1);
             gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, snapTex || noiseTex);
+            gl.uniform1f(progI.snap, snapReady);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             paintPing = dst;
             updateReflections(painting, time, dt);
@@ -2910,8 +3015,18 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             const on = document.body.classList.toggle('now');
             eraBtn.textContent = on ? '🕰 take me back to 1998' : '✨ time travel to 2026';
             if (window.__setVectorEra) window.__setVectorEra(on);
-            if (on) { spawnWorms(); cacheReflectables(); }
-            else { clearReflectables(); removeWorms(); }
+            if (on) {
+                spawnWorms();
+                cacheReflectables();
+                scheduleSnapshot(400);
+                clearInterval(snapInterval);
+                snapInterval = setInterval(buildSnapshot, 8000); // the reflection keeps up
+            } else {
+                clearReflectables();
+                removeWorms();
+                snapReady = 0;
+                clearInterval(snapInterval);
+            }
             if (on) {
                 if (!nowGl) {
                     nowGl = nowCursorInit();
@@ -3207,6 +3322,16 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 l.el.remove();
                 const cx = l.x + l.w / 2, cy = l.y + l.h / 2;
                 sfxExplode();
+                if (vecEra && l.vecModel) {
+                    // 2026: the creature comes apart along its own edges
+                    const scale = Math.min(l.w / (l.vecModel.w + 3), l.h / (l.vecModel.h + 3));
+                    vecShatter(projectCreatureSegs(l.vecModel, l.ang3d, scale), cx, cy, l.fluoro, 1.6);
+                    vecSparks(cx, cy, l.fluoro, 12);
+                    vecRing(cx, cy, 0, l.fluoro);
+                    vecRing(cx, cy, 0.4, '#000000');
+                    vecRing(cx, cy, 0.9, l.fluoro);
+                    return;
+                }
                 // the classic emoji boom, now merely the centrepiece
                 const boom = document.createElement('span');
                 boom.className = 'llama-boom';
@@ -3348,6 +3473,14 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 asteroids.splice(i, 1);
                 a.el.remove();
                 sfxPop();
+                if (vecEra && a.vecModel) {
+                    const rx = a.x + a.R, ry = a.y + a.R;
+                    vecShatter(projectRoidSegs(a), rx, ry, a.invincible ? '#ff2079' : '#000000', 1.4);
+                    vecSparks(rx, ry, '#000000', 8);
+                    vecRing(rx, ry, 0, '#000000', Math.max(innerWidth, innerHeight) * 0.4);
+                    vecRing(rx, ry, 0.5, '#000000', Math.max(innerWidth, innerHeight) * 0.4);
+                    return;
+                }
                 spawnRing(a.x + a.R, a.y + a.R, 0);
                 spawnRing(a.x + a.R, a.y + a.R, 450);
                 const reach = Math.max(innerWidth, innerHeight) * 0.55;
@@ -3357,13 +3490,19 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             // Missile Command send-off: expanding flickering disc, then gone.
             function mcBlast(cx, cy) {
                 sfxExplode();
-                const b = document.createElement('div');
-                b.className = 'mc-blast';
-                b.style.translate = cx + 'px ' + cy + 'px';
-                document.body.appendChild(b);
-                setTimeout(() => b.remove(), 1700);
-                document.body.classList.add('shaking');
-                setTimeout(() => document.body.classList.remove('shaking'), 450);
+                if (vecEra) {
+                    // 2026: a slow polygonal supernova
+                    for (let k = 0; k < 4; k++) vecRing(cx, cy, k * 0.45, k % 2 ? '#000000' : '#ff2079');
+                    vecSparks(cx, cy, '#ff2079', 16);
+                } else {
+                    const b = document.createElement('div');
+                    b.className = 'mc-blast';
+                    b.style.translate = cx + 'px ' + cy + 'px';
+                    document.body.appendChild(b);
+                    setTimeout(() => b.remove(), 4300);
+                    document.body.classList.add('shaking');
+                    setTimeout(() => document.body.classList.remove('shaking'), 450);
+                }
                 // the blast takes ordinary asteroids with it
                 for (let i = asteroids.length - 1; i >= 0; i--) {
                     const a = asteroids[i];
@@ -3599,10 +3738,146 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 if (vec) drawVecRoid(a);
             }
 
+            // ===== Vector FX (2026): things come apart along their own edges =====
+            // A single fullscreen canvas holds the shrapnel: every edge of the
+            // dead creature's wireframe becomes a line segment that drifts,
+            // tumbles and fades; jittered polygon rings ripple outward slowly.
+            const vecFx = [];
+            const fxCanvas = document.createElement('canvas');
+            fxCanvas.className = 'vec-fx';
+            document.body.appendChild(fxCanvas);
+            const fxCtx = fxCanvas.getContext('2d');
+
+            function projectCreatureSegs(model, ang, scale) {
+                const segs = [];
+                const ca = Math.cos(ang), sa = Math.sin(ang);
+                const cx3 = model.w / 2, cy3 = model.h / 2;
+                const D = model.w * 2.4;
+                for (const [i, j] of model.edges) {
+                    segs.push([model.verts[i], model.verts[j]].map(([x, y, z]) => {
+                        const rx = (x - cx3) * ca - z * sa;
+                        const rz = (x - cx3) * sa + z * ca;
+                        const per = D / (D + rz);
+                        return [rx * scale * per, (y - cy3) * scale * per];
+                    }));
+                }
+                return segs;
+            }
+
+            function projectRoidSegs(a) {
+                const segs = [];
+                const ay = a.spin * Math.PI / 180, ax = ay * 0.63;
+                const cy1 = Math.cos(ay), sy1 = Math.sin(ay), cx1 = Math.cos(ax), sx1 = Math.sin(ax);
+                const D = 3.2, r = a.R * 0.82;
+                for (const [i, j] of a.vecModel.edges) {
+                    segs.push([a.vecModel.verts[i], a.vecModel.verts[j]].map(([x, y, z]) => {
+                        const rx = x * cy1 - z * sy1;
+                        let rz = x * sy1 + z * cy1;
+                        const ry = y * cx1 - rz * sx1;
+                        rz = y * sx1 + rz * cx1;
+                        const per = D / (D + rz);
+                        return [rx * r * per, ry * r * per];
+                    }));
+                }
+                return segs;
+            }
+
+            function vecShatter(segs, cx, cy, colour, lw) {
+                for (const [p1, p2] of segs) {
+                    const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+                    const m = Math.hypot(mx, my) || 1;
+                    const sp = 40 + Math.random() * 110;
+                    vecFx.push({
+                        kind: 'edge',
+                        x: cx + mx, y: cy + my,
+                        ax: p1[0] - mx, ay: p1[1] - my,
+                        bx: p2[0] - mx, by: p2[1] - my,
+                        vx: mx / m * sp + (Math.random() - 0.5) * 30,
+                        vy: my / m * sp + (Math.random() - 0.5) * 30,
+                        rot: 0, rotV: (Math.random() - 0.5) * 3,
+                        age: 0, life: 2.6 + Math.random() * 2,
+                        colour, lw
+                    });
+                }
+            }
+
+            function vecSparks(cx, cy, colour, n) {
+                for (let k = 0; k < n; k++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const len = 6 + Math.random() * 14;
+                    const sp = 90 + Math.random() * 160;
+                    vecFx.push({
+                        kind: 'edge',
+                        x: cx, y: cy,
+                        ax: Math.cos(a) * len, ay: Math.sin(a) * len,
+                        bx: -Math.cos(a) * len * 0.2, by: -Math.sin(a) * len * 0.2,
+                        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                        rot: 0, rotV: 0,
+                        age: 0, life: 1.8 + Math.random() * 1.6,
+                        colour, lw: 1.2
+                    });
+                }
+            }
+
+            function vecRing(cx, cy, delay, colour, maxR) {
+                vecFx.push({
+                    kind: 'ring',
+                    x: cx, y: cy,
+                    r: 14,
+                    vr: (maxR || Math.max(innerWidth, innerHeight) * 0.7) / 3.5,
+                    jit: Array.from({ length: 11 }, () => 0.9 + Math.random() * 0.2),
+                    rot: Math.random() * 6.28,
+                    age: -delay, life: 3.5,
+                    colour, lw: 2
+                });
+            }
+
+            function stepVecFx(dt) {
+                const d = dprNow();
+                const cw = Math.round(innerWidth * d), ch = Math.round(innerHeight * d);
+                if (fxCanvas.width !== cw || fxCanvas.height !== ch) {
+                    fxCanvas.width = cw;
+                    fxCanvas.height = ch;
+                }
+                fxCtx.clearRect(0, 0, cw, ch);
+                if (!vecFx.length) return;
+                fxCtx.lineCap = 'round';
+                for (let i = vecFx.length - 1; i >= 0; i--) {
+                    const p = vecFx[i];
+                    p.age += dt;
+                    if (p.age < 0) continue; // staggered rings, waiting their turn
+                    if (p.age >= p.life) { vecFx.splice(i, 1); continue; }
+                    fxCtx.globalAlpha = Math.min(1, (1 - p.age / p.life) * 1.4);
+                    fxCtx.strokeStyle = p.colour;
+                    fxCtx.lineWidth = p.lw * d;
+                    fxCtx.beginPath();
+                    if (p.kind === 'edge') {
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
+                        p.rot += p.rotV * dt;
+                        const c = Math.cos(p.rot), s = Math.sin(p.rot);
+                        fxCtx.moveTo((p.x + p.ax * c - p.ay * s) * d, (p.y + p.ax * s + p.ay * c) * d);
+                        fxCtx.lineTo((p.x + p.bx * c - p.by * s) * d, (p.y + p.bx * s + p.by * c) * d);
+                    } else {
+                        p.r += p.vr * dt;
+                        const n = p.jit.length;
+                        for (let k = 0; k <= n; k++) {
+                            const a = p.rot + (k % n) / n * Math.PI * 2;
+                            const rr = p.r * p.jit[k % n];
+                            const px = (p.x + Math.cos(a) * rr) * d, py = (p.y + Math.sin(a) * rr) * d;
+                            k ? fxCtx.lineTo(px, py) : fxCtx.moveTo(px, py);
+                        }
+                    }
+                    fxCtx.stroke();
+                }
+                fxCtx.globalAlpha = 1;
+            }
+
             window.__setVectorEra = function (on) {
                 vecEra = on;
                 for (const l of llamas) swapLlamaEl(l, on);
                 for (const a of asteroids) swapRoidEl(a, on);
+                if (!on) vecFx.length = 0;
             };
 
             // Shoot the rocks: a wand click is live ammunition now.
@@ -3817,6 +4092,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                             + (s.spin ? ' rotate(' + Math.round(s.spin) + 'deg)' : '');
                     }
                 }
+                stepVecFx(dt);
                 requestAnimationFrame(step);
             }
             requestAnimationFrame(step);
